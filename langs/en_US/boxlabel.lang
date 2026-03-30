@@ -1,0 +1,67 @@
+# Copyright (C) 2026 DPG Supply
+#
+# BoxLabel module language file
+
+# Module
+Module500010Name = Box Label
+Module500010Desc = Generate and print 4x6 box labels with product, batch, and serial information after manufacturing
+
+# Object
+BoxLabel = Box Label
+BoxLabels = Box Labels
+BoxLabelList = Label List
+NewBoxLabel = New Box Label
+
+# Fields
+SerialNumber = Serial Number
+Batch = Batch
+ManufacturingDate = Manufacturing Date
+LabelQuantity = Number of Copies
+ProductLabel = Product Name
+ManufacturingOrder = Manufacturing Order
+Lot = Lot/Serial
+
+# Status
+Draft = Draft
+Generated = Generated
+StatusDraft = Draft
+StatusGenerated = Generated
+
+# Actions
+GenerateBoxLabels = Generate Box Labels
+GenerateBoxLabelsFromMO = Generate labels from this Manufacturing Order
+GeneratePDF = Generate PDF
+RegeneratePDF = Regenerate PDF
+DownloadPDF = Download PDF
+ConfirmGenerateLabels = This will generate box labels for all produced items with batch/serial numbers from this Manufacturing Order. Continue?
+BoxLabelCreatedFromMO = %s box label(s) created from Manufacturing Order %s
+NoLabelsForThisMO = No box labels generated for this Manufacturing Order yet
+NoProducedLinesWithBatch = No produced lines with batch/serial numbers found for this Manufacturing Order
+LabelsAlreadyExist = Labels already exist for all produced serials in this Manufacturing Order
+LabelGeneratedSuccess = Box label PDF generated successfully
+
+# Permissions
+Permission500011a = Read box labels
+Permission500012a = Create/edit box labels
+Permission500013a = Delete box labels
+
+# Admin
+BoxLabelSetup = Box Label Setup
+NumberingRule = Numbering Rule
+PDFModel = PDF Model
+DebugMode = Debug Mode
+DebugModeDesc = When enabled, exposes a diagnostic endpoint at /custom/boxlabel/ajax/debug.php for troubleshooting
+
+# MO Tab
+BoxLabelsTab = Box Labels
+
+# Cascading form
+SelectProductFirst = Select a product first
+SelectSerial = Select Serial/Batch
+SelectMO = Select Manufacturing Order
+NoSerialsFound = No serials in stock for this product
+NoMOsFound = No Manufacturing Orders found
+Loading = Loading
+
+# Linked objects
+LinkToBoxLabel = Link to Box Label
