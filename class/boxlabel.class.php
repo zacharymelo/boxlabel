@@ -670,7 +670,7 @@ class BoxLabel extends CommonObject
 	 * @param  int $mo_id Manufacturing Order ID
 	 * @return int        Count of labels
 	 */
-	public function countForMo($mo_id)
+	public function countForMo($mo_id, $obj = null)
 	{
 		$sql = "SELECT COUNT(rowid) as nb";
 		$sql .= " FROM ".MAIN_DB_PREFIX."box_label";
