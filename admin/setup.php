@@ -7,6 +7,9 @@
  * \brief   Box Label module setup page
  */
 
+// Allow text with commas and special characters in header settings
+define('NOSCANPOSTFORINJECTION', array('BOXLABEL_HEADER_TITLE', 'BOXLABEL_HEADER_SUBTITLE'));
+
 $res = 0;
 if (!$res && file_exists("../../main.inc.php"))     { $res = @include "../../main.inc.php"; }
 if (!$res && file_exists("../../../main.inc.php"))   { $res = @include "../../../main.inc.php"; }
