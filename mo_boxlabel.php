@@ -53,6 +53,21 @@ if ($action == 'generate' && $permwrite && GETPOST('confirm', 'alpha') == 'yes')
 	$count = $boxlabel->generateFromMo($mo->id, $user);
 
 	if ($count > 0) {
+		// Auto-generate PDFs for all newly created labels
+		$sql_new = "SELECT rowid FROM ".MAIN_DB_PREFIX."box_label";
+		$sql_new .= " WHERE fk_mo = ".((int) $mo->id);
+		$sql_new .= " AND status = 0";
+		$sql_new .= " AND entity IN (".getEntity('boxlabel').")";
+		$res_new = $db->query($sql_new);
+		if ($res_new) {
+			while ($obj_new = $db->fetch_object($res_new)) {
+				$lbl = new BoxLabel($db);
+				if ($lbl->fetch($obj_new->rowid) > 0) {
+					$lbl->buildLabelPdf($langs);
+					$lbl->validate($user, 1);
+				}
+			}
+		}
 		setEventMessages($langs->trans('BoxLabelCreatedFromMO', $count, $mo->ref), null, 'mesgs');
 	} elseif ($count == 0) {
 		setEventMessages($langs->trans('LabelsAlreadyExist'), null, 'warnings');
@@ -162,18 +177,21 @@ if ($res_check) {
 	$has_produced = (int) $obj_check->cnt;
 }
 
-// Action buttons
-print '<div class="tabsAction">';
-if ($permwrite && $has_produced > 0) {
-	print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id.'&action=generate&token='.newToken().'">'.$langs->trans('GenerateBoxLabels').' ('.$has_produced.' serials)</a>';
-}
-
 // Existing label count
 $boxlabel_tmp = new BoxLabel($db);
 $label_count = $boxlabel_tmp->countForMo($mo->id);
 
+// Action buttons
+print '<div class="tabsAction">';
+
+if ($permwrite && $has_produced > 0) {
+	// Generate labels (creates records + PDFs for any serials not yet labeled)
+	print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id.'&action=generate&token='.newToken().'">'.$langs->trans('GenerateBoxLabels').' ('.$has_produced.' serials)</a>';
+}
+
 if ($label_count > 0) {
-	print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id.'&action=builddoc_all&token='.newToken().'">'.$langs->trans('GeneratePDF').' ('.$langs->trans('All').')</a>';
+	// Regenerate all PDFs for existing labels
+	print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id.'&action=builddoc_all&token='.newToken().'">'.$langs->trans('RegenerateAllPDFs').' ('.$label_count.')</a>';
 }
 
 if ($has_produced == 0) {
