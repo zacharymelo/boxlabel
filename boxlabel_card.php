@@ -78,7 +78,7 @@ if ($action == 'add' && $permwrite) {
 	$object->product_label       = GETPOST('product_label', 'alpha');
 	$object->product_description = GETPOST('product_description', 'restricthtml');
 	$object->date_manufactured   = dol_mktime(0, 0, 0, GETPOSTINT('date_manufacturedmonth'), GETPOSTINT('date_manufacturedday'), GETPOSTINT('date_manufacturedyear'));
-	$object->qty_labels          = GETPOSTINT('qty_labels');
+	$object->qty_labels          = 1;
 	$object->note_private        = GETPOST('note_private', 'restricthtml');
 	$object->note_public         = GETPOST('note_public', 'restricthtml');
 
@@ -102,6 +102,10 @@ if ($action == 'add' && $permwrite) {
 	} else {
 		$result = $object->create($user);
 		if ($result > 0) {
+			// Auto-generate PDF immediately
+			$object->buildLabelPdf($langs);
+			$object->validate($user);
+
 			if (!empty($backtopage)) {
 				header("Location: ".$backtopage);
 				exit;
@@ -125,7 +129,6 @@ if ($action == 'update' && $permwrite) {
 	$object->product_label       = GETPOST('product_label', 'alpha');
 	$object->product_description = GETPOST('product_description', 'restricthtml');
 	$object->date_manufactured   = dol_mktime(0, 0, 0, GETPOSTINT('date_manufacturedmonth'), GETPOSTINT('date_manufacturedday'), GETPOSTINT('date_manufacturedyear'));
-	$object->qty_labels          = GETPOSTINT('qty_labels');
 
 	$ret = $extrafields->setOptionalsFromPost(null, $object);
 
@@ -206,23 +209,23 @@ if ($action == 'create') {
 	print $form->select_produits(GETPOSTINT('fk_product'), 'fk_product', '', 0, 0, -1, 2, '', 0, array(), 0, 'maxwidth500');
 	print '</td></tr>';
 
-	// Serial/Batch — cascading select populated via AJAX
+	// Manufacturing Order — cascading from product, filters serials
+	print '<tr><td>'.$langs->trans('ManufacturingOrder').'</td><td>';
+	print '<select name="fk_mo" id="fk_mo" class="maxwidth400">';
+	print '<option value="">'.dol_escape_htmltag($langs->trans('SelectProductFirst')).'</option>';
+	print '</select>';
+	print '</td></tr>';
+
+	// Serial/Batch — cascading from MO (or product if no MO selected)
 	print '<tr><td>'.$langs->trans('SerialNumber').'</td><td>';
 	print '<select name="serial_number" id="serial_number" class="maxwidth400">';
-	print '<option value="">'.dol_escape_htmltag($langs->trans('SelectProductFirst')).'</option>';
+	print '<option value="">'.dol_escape_htmltag($langs->trans('SelectMOFirst')).'</option>';
 	print '</select>';
 	print '</td></tr>';
 
 	// Batch — auto-filled from serial, read-only
 	print '<tr><td>'.$langs->trans('Batch').'</td><td>';
 	print '<input type="text" name="batch" id="batch" class="maxwidth300" value="" readonly>';
-	print '</td></tr>';
-
-	// Manufacturing Order — cascading select populated via AJAX
-	print '<tr><td>'.$langs->trans('ManufacturingOrder').'</td><td>';
-	print '<select name="fk_mo" id="fk_mo" class="maxwidth400">';
-	print '<option value="">'.dol_escape_htmltag($langs->trans('SelectProductFirst')).'</option>';
-	print '</select>';
 	print '</td></tr>';
 
 	// Product Label — auto-filled, read-only
@@ -240,11 +243,6 @@ if ($action == 'create') {
 	print $form->selectDate('', 'date_manufactured', 0, 0, 1, 'create', 1, 1);
 	print '</td></tr>';
 
-	// Number of Copies
-	print '<tr><td>'.$langs->trans('LabelQuantity').'</td><td>';
-	print '<input type="number" name="qty_labels" class="maxwidth75" value="'.(GETPOSTINT('qty_labels') > 0 ? GETPOSTINT('qty_labels') : 1).'" min="1">';
-	print '</td></tr>';
-
 	// Extrafields
 	print $object->showOptionals($extrafields, 'create');
 
@@ -259,9 +257,14 @@ if ($action == 'create') {
 
 	print '</form>';
 
-	// Cascade JavaScript for create mode
+	// Cascade JavaScript for create mode — preserve selections on error re-render
 	print "\n".'<script>'."\n";
-	print _boxlabel_cascade_js(0, '', '', 0);
+	print _boxlabel_cascade_js(
+		GETPOSTINT('fk_product'),
+		dol_escape_js(GETPOST('serial_number', 'alpha')),
+		'',
+		GETPOSTINT('fk_mo')
+	);
 	print '</script>'."\n";
 
 } elseif ($object->id > 0) {
@@ -305,23 +308,23 @@ if ($action == 'create') {
 		print $form->select_produits($object->fk_product, 'fk_product', '', 0, 0, -1, 2, '', 0, array(), 0, 'maxwidth500');
 		print '</td></tr>';
 
-		// Serial/Batch — select with pre-selection
+		// MO — cascading from product, filters serials
+		print '<tr><td>'.$langs->trans('ManufacturingOrder').'</td><td>';
+		print '<select name="fk_mo" id="fk_mo" class="maxwidth400">';
+		print '<option value="">'.dol_escape_htmltag($langs->trans('SelectProductFirst')).'</option>';
+		print '</select>';
+		print '</td></tr>';
+
+		// Serial/Batch — cascading from MO
 		print '<tr><td>'.$langs->trans('SerialNumber').'</td><td>';
 		print '<select name="serial_number" id="serial_number" class="maxwidth400">';
-		print '<option value="">'.dol_escape_htmltag($langs->trans('SelectProductFirst')).'</option>';
+		print '<option value="">'.dol_escape_htmltag($langs->trans('SelectMOFirst')).'</option>';
 		print '</select>';
 		print '</td></tr>';
 
 		// Batch — auto-filled
 		print '<tr><td>'.$langs->trans('Batch').'</td><td>';
 		print '<input type="text" name="batch" id="batch" class="maxwidth300" value="'.dol_escape_htmltag($object->batch).'" readonly>';
-		print '</td></tr>';
-
-		// MO — select with pre-selection
-		print '<tr><td>'.$langs->trans('ManufacturingOrder').'</td><td>';
-		print '<select name="fk_mo" id="fk_mo" class="maxwidth400">';
-		print '<option value="">'.dol_escape_htmltag($langs->trans('SelectProductFirst')).'</option>';
-		print '</select>';
 		print '</td></tr>';
 
 		// Product Label
@@ -337,11 +340,6 @@ if ($action == 'create') {
 		// Manufacturing Date
 		print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>';
 		print $form->selectDate($object->date_manufactured, 'date_manufactured', 0, 0, 1, 'edit', 1, 1);
-		print '</td></tr>';
-
-		// Number of Copies
-		print '<tr><td>'.$langs->trans('LabelQuantity').'</td><td>';
-		print '<input type="number" name="qty_labels" class="maxwidth75" value="'.$object->qty_labels.'" min="1">';
 		print '</td></tr>';
 
 		// Extrafields
@@ -410,7 +408,6 @@ if ($action == 'create') {
 		print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>'.dol_print_date($object->date_manufactured, 'day').'</td></tr>';
 
 		// Number of Copies
-		print '<tr><td>'.$langs->trans('LabelQuantity').'</td><td>'.$object->qty_labels.'</td></tr>';
 
 		// Status
 		print '<tr><td>'.$langs->trans('Status').'</td><td>'.$object->getLibStatut(5).'</td></tr>';
@@ -486,6 +483,7 @@ function _boxlabel_cascade_js($preProduct = 0, $preSerial = '', $preBatch = '', 
 
 	$ajaxBase = dol_buildpath('/boxlabel/ajax/', 1);
 	$strSelectFirst  = dol_escape_js($langs->trans('SelectProductFirst'));
+	$strSelectMOFirst = dol_escape_js($langs->trans('SelectMOFirst'));
 	$strSelectSerial = dol_escape_js($langs->trans('SelectSerial'));
 	$strNoSerials    = dol_escape_js($langs->trans('NoSerialsFound'));
 	$strSelectMO     = dol_escape_js($langs->trans('SelectMO'));
@@ -506,7 +504,6 @@ function _boxlabel_cascade_js($preProduct = 0, $preSerial = '', $preBatch = '', 
 	var inpDesc   = document.getElementById('product_description');
 	var inpLotId  = document.getElementById('fk_product_lot');
 
-	// Dolibarr selectDate sub-fields
 	var dateDayEl   = document.querySelector('[name=date_manufacturedday]');
 	var dateMonthEl = document.querySelector('[name=date_manufacturedmonth]');
 	var dateYearEl  = document.querySelector('[name=date_manufacturedyear]');
@@ -520,26 +517,129 @@ function _boxlabel_cascade_js($preProduct = 0, $preSerial = '', $preBatch = '', 
 		sel.disabled = !!disabled;
 	}
 
-	// ---- Serial loading ----
-	function loadSerials(pid) {
+	function setDateField(el, val) {
+		if (!el || !val) return;
+		var numVal = parseInt(val, 10);
+		if (isNaN(numVal)) return;
+		if (el.tagName === 'SELECT') {
+			for (var i = 0; i < el.options.length; i++) {
+				if (parseInt(el.options[i].value, 10) === numVal) {
+					el.selectedIndex = i;
+					break;
+				}
+			}
+		} else {
+			el.value = numVal;
+		}
+		if (typeof jQuery !== 'undefined') { jQuery(el).trigger('change'); }
+	}
+
+	function clearAutoFields() {
+		if (inpBatch) inpBatch.value = '';
+		if (inpLotId) inpLotId.value = '';
+		if (inpLabel) inpLabel.value = '';
+		if (inpDesc) inpDesc.value = '';
+	}
+
+	// ================================================================
+	// CASCADE: Product → MO → Serial
+	// ================================================================
+
+	// ---- Step 1: Product changes → load MOs, reset serial ----
+	function onProductChange() {
+		var el = document.querySelector('[name=fk_product]');
+		var pid = el ? parseInt(el.value, 10) : 0;
+
+		// Reset downstream
+		setSelectOption(selSerial, '', '{$strSelectMOFirst}', true);
+		clearAutoFields();
+
+		// Auto-fill product label/desc
+		if (pid > 0) {
+			fetch(ajaxBase + 'fetch_serials.php?fk_product=' + pid + '&fk_mo=0', {credentials: 'same-origin'})
+			.then(function(r){ return r.json(); })
+			.then(function(data){
+				if (data.product) {
+					if (inpLabel) inpLabel.value = data.product.label || '';
+					if (inpDesc) inpDesc.value = data.product.description || '';
+				}
+			}).catch(function(){});
+		}
+
+		loadMos(pid);
+	}
+
+	// ---- Step 2: Load MOs for product ----
+	function loadMos(pid) {
 		pid = parseInt(pid, 10);
 		if (!pid || pid <= 0) {
-			setSelectOption(selSerial, '', '{$strSelectFirst}', true);
-			clearAutoFields();
+			setSelectOption(selMo, '', '{$strSelectFirst}', true);
+			setSelectOption(selSerial, '', '{$strSelectMOFirst}', true);
 			return;
 		}
+		setSelectOption(selMo, '', '{$strLoading}...', true);
+
+		fetch(ajaxBase + 'fetch_mos.php?fk_product=' + pid, {credentials: 'same-origin'})
+		.then(function(r){ return r.json(); })
+		.then(function(mos){
+			selMo.innerHTML = '';
+
+			if (!mos.length) {
+				setSelectOption(selMo, '', '{$strNoMOs}', true);
+				setSelectOption(selSerial, '', '{$strSelectMOFirst}', true);
+				return;
+			}
+
+			var blank = document.createElement('option');
+			blank.value = '';
+			blank.textContent = '— {$strSelectMO} —';
+			selMo.appendChild(blank);
+
+			mos.forEach(function(m){
+				var opt = document.createElement('option');
+				opt.value = m.rowid;
+				opt.textContent = m.ref;
+				selMo.appendChild(opt);
+			});
+			selMo.disabled = false;
+
+			// Pre-select if editing
+			if (preMo) {
+				selMo.value = preMo;
+				preMo = 0;
+				onMoChange(); // Trigger serial load
+			}
+		})
+		.catch(function(){
+			setSelectOption(selMo, '', '{$strNoMOs}', true);
+		});
+	}
+
+	// ---- Step 3: MO changes → load serials for that MO ----
+	function onMoChange() {
+		var moId = parseInt(selMo.value, 10);
+		var prodEl = document.querySelector('[name=fk_product]');
+		var pid = prodEl ? parseInt(prodEl.value, 10) : 0;
+
+		if (!moId || moId <= 0 || !pid || pid <= 0) {
+			setSelectOption(selSerial, '', '{$strSelectMOFirst}', true);
+			if (inpBatch) inpBatch.value = '';
+			if (inpLotId) inpLotId.value = '';
+			return;
+		}
+
+		loadSerials(pid, moId);
+	}
+
+	// ---- Step 4: Load serials filtered by product + MO ----
+	function loadSerials(pid, moId) {
 		setSelectOption(selSerial, '', '{$strLoading}...', true);
 
-		fetch(ajaxBase + 'fetch_serials.php?fk_product=' + pid, {credentials: 'same-origin'})
+		var url = ajaxBase + 'fetch_serials.php?fk_product=' + pid + '&fk_mo=' + moId;
+		fetch(url, {credentials: 'same-origin'})
 		.then(function(r){ return r.json(); })
 		.then(function(data){
 			selSerial.innerHTML = '';
-
-			// Auto-fill product info
-			if (data.product) {
-				if (inpLabel) inpLabel.value = data.product.label || '';
-				if (inpDesc) inpDesc.value = data.product.description || '';
-			}
 
 			if (!data.serials || !data.serials.length) {
 				setSelectOption(selSerial, '', '{$strNoSerials}', true);
@@ -576,57 +676,7 @@ function _boxlabel_cascade_js($preProduct = 0, $preSerial = '', $preBatch = '', 
 		});
 	}
 
-	// ---- MO loading ----
-	function loadMos(pid) {
-		pid = parseInt(pid, 10);
-		if (!pid || pid <= 0) {
-			setSelectOption(selMo, '', '{$strSelectFirst}', true);
-			return;
-		}
-		setSelectOption(selMo, '', '{$strLoading}...', true);
-
-		fetch(ajaxBase + 'fetch_mos.php?fk_product=' + pid, {credentials: 'same-origin'})
-		.then(function(r){ return r.json(); })
-		.then(function(mos){
-			selMo.innerHTML = '';
-
-			if (!mos.length) {
-				setSelectOption(selMo, '', '{$strNoMOs}', true);
-				return;
-			}
-
-			var blank = document.createElement('option');
-			blank.value = '';
-			blank.textContent = '— {$strSelectMO} —';
-			selMo.appendChild(blank);
-
-			mos.forEach(function(m){
-				var opt = document.createElement('option');
-				opt.value = m.rowid;
-				opt.textContent = m.ref;
-				selMo.appendChild(opt);
-			});
-			selMo.disabled = false;
-
-			// Pre-select if editing
-			if (preMo) {
-				selMo.value = preMo;
-				preMo = 0;
-			}
-		})
-		.catch(function(){
-			setSelectOption(selMo, '', '{$strNoMOs}', true);
-		});
-	}
-
-	function clearAutoFields() {
-		if (inpBatch) inpBatch.value = '';
-		if (inpLotId) inpLotId.value = '';
-		if (inpLabel) inpLabel.value = '';
-		if (inpDesc) inpDesc.value = '';
-	}
-
-	// ---- Serial change handler ----
+	// ---- Step 5: Serial changes → auto-fill batch, date, lot ID ----
 	function onSerialChange() {
 		var opt = selSerial.options[selSerial.selectedIndex];
 		if (!opt || !opt.value) {
@@ -634,42 +684,41 @@ function _boxlabel_cascade_js($preProduct = 0, $preSerial = '', $preBatch = '', 
 			if (inpLotId) inpLotId.value = '';
 			return;
 		}
-		// Auto-fill batch
-		if (inpBatch) inpBatch.value = opt.value;
-		// Auto-fill lot ID
+		// Batch = MO reference (production run identifier), not serial
+		var moOpt = selMo.options[selMo.selectedIndex];
+		if (inpBatch) inpBatch.value = (moOpt && moOpt.value) ? moOpt.textContent : '';
 		if (inpLotId) inpLotId.value = opt.dataset.lotId || '';
-		// Auto-fill manufacturing date
-		if (opt.dataset.mfgDay && dateDayEl) dateDayEl.value = parseInt(opt.dataset.mfgDay, 10);
-		if (opt.dataset.mfgMonth && dateMonthEl) dateMonthEl.value = parseInt(opt.dataset.mfgMonth, 10);
-		if (opt.dataset.mfgYear && dateYearEl) dateYearEl.value = parseInt(opt.dataset.mfgYear, 10);
+		setDateField(dateDayEl, opt.dataset.mfgDay);
+		setDateField(dateMonthEl, opt.dataset.mfgMonth);
+		setDateField(dateYearEl, opt.dataset.mfgYear);
 	}
 
+	// ---- Event bindings ----
 	selSerial.addEventListener('change', onSerialChange);
+	selMo.addEventListener('change', onMoChange);
 
-	// ---- Product change handler ----
-	function onProductChange() {
-		var el = document.querySelector('[name=fk_product]');
-		var pid = el ? parseInt(el.value, 10) : 0;
-		loadSerials(pid);
-		loadMos(pid);
-	}
-
-	// Bind to Select2 events (Dolibarr wraps select_produits in Select2)
 	if (typeof jQuery !== 'undefined') {
 		jQuery(document).on('select2:select', '[name=fk_product]', onProductChange);
 		jQuery(document).on('select2:clear', '[name=fk_product]', function(){
-			setSelectOption(selSerial, '', '{$strSelectFirst}', true);
 			setSelectOption(selMo, '', '{$strSelectFirst}', true);
+			setSelectOption(selSerial, '', '{$strSelectMOFirst}', true);
 			clearAutoFields();
 		});
 	}
-	// Native fallback
 	var prodEl = document.querySelector('[name=fk_product]');
 	if (prodEl) prodEl.addEventListener('change', onProductChange);
 
-	// ---- Init: load if product is pre-selected ----
+	// ---- Init: load if pre-selected ----
 	if (preProduct > 0) {
-		loadSerials(preProduct);
+		// Fetch product info
+		fetch(ajaxBase + 'fetch_serials.php?fk_product=' + preProduct + '&fk_mo=0', {credentials: 'same-origin'})
+		.then(function(r){ return r.json(); })
+		.then(function(data){
+			if (data.product) {
+				if (inpLabel) inpLabel.value = data.product.label || '';
+				if (inpDesc) inpDesc.value = data.product.description || '';
+			}
+		}).catch(function(){});
 		loadMos(preProduct);
 	}
 })();

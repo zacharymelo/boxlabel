@@ -142,6 +142,16 @@ class BoxLabel extends CommonObject
 			$this->id = $this->db->last_insert_id(MAIN_DB_PREFIX."box_label");
 			$this->date_creation = $now;
 			$this->fk_user_creat = $user->id;
+
+			// Link BoxLabel to MO in llx_element_element
+			if (!empty($this->fk_mo) && $this->fk_mo > 0) {
+				$this->add_object_linked('mo', $this->fk_mo);
+			}
+
+			// Link BoxLabel to Product Lot/Serial in llx_element_element
+			if (!empty($this->fk_product_lot) && $this->fk_product_lot > 0) {
+				$this->add_object_linked('productlot', $this->fk_product_lot);
+			}
 		}
 
 		if (!$error && !$notrigger) {
@@ -258,6 +268,11 @@ class BoxLabel extends CommonObject
 			$this->errors[] = "Error ".$this->db->lasterror();
 		}
 
+		// Re-sync MO and Lot/Serial links in llx_element_element
+		if (!$error) {
+			$this->syncLinkedObjects();
+		}
+
 		if (!$error && !$notrigger) {
 			$result = $this->call_trigger('BOXLABEL_BOXLABEL_MODIFY', $user);
 			if ($result < 0) {
@@ -271,6 +286,50 @@ class BoxLabel extends CommonObject
 		}
 		$this->db->commit();
 		return 1;
+	}
+
+	/**
+	 * Sync the MO and Lot/Serial links in llx_element_element.
+	 * Removes stale links and ensures current FK values are linked.
+	 */
+	public function syncLinkedObjects()
+	{
+		if (empty($this->id)) {
+			return;
+		}
+
+		$target_type = $this->getElementType(); // 'boxlabel_boxlabel'
+		$bare_target = $this->element;           // 'boxlabel'
+
+		$link_types = array('mo', 'productlot');
+
+		foreach ($link_types as $source_type) {
+			// Remove existing links of this type
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."element_element";
+			$sql_del .= " WHERE fk_target = ".((int) $this->id);
+			$sql_del .= " AND targettype = '".$this->db->escape($target_type)."'";
+			$sql_del .= " AND sourcetype = '".$this->db->escape($source_type)."'";
+			$this->db->query($sql_del);
+
+			// Clean bare element name links
+			if ($bare_target !== $target_type) {
+				$sql_del2 = "DELETE FROM ".MAIN_DB_PREFIX."element_element";
+				$sql_del2 .= " WHERE fk_target = ".((int) $this->id);
+				$sql_del2 .= " AND targettype = '".$this->db->escape($bare_target)."'";
+				$sql_del2 .= " AND sourcetype = '".$this->db->escape($source_type)."'";
+				$this->db->query($sql_del2);
+			}
+		}
+
+		// Re-create MO link
+		if (!empty($this->fk_mo) && $this->fk_mo > 0) {
+			$this->add_object_linked('mo', $this->fk_mo);
+		}
+
+		// Re-create Lot/Serial link
+		if (!empty($this->fk_product_lot) && $this->fk_product_lot > 0) {
+			$this->add_object_linked('productlot', $this->fk_product_lot);
+		}
 	}
 
 	/**
@@ -586,7 +645,7 @@ class BoxLabel extends CommonObject
 			$label->fk_product = $prod_id;
 			$label->fk_mo = $mo_id;
 			$label->fk_product_lot = $lot_id;
-			$label->batch = $obj->batch;
+			$label->batch = $mo->ref;  // Batch = MO reference (production run identifier)
 			$label->serial_number = $obj->batch;
 			$label->product_label = $prod_label;
 			$label->product_description = $prod_desc;

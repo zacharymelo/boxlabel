@@ -37,7 +37,7 @@ class modBoxlabel extends DolibarrModules
 
 		$this->name = preg_replace('/^mod/i', '', get_class($this));
 		$this->description = "Generate and print 4x6 box labels with product, batch, and serial information after manufacturing";
-		$this->version = '1.0.1';
+		$this->version = '1.3.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'mrp';
 
@@ -46,7 +46,7 @@ class modBoxlabel extends DolibarrModules
 			'login' => 0,
 			'substitutions' => 0,
 			'menus' => 0,
-			'hooks' => array('data' => array('elementproperties', 'mocard'), 'entity' => '0'),
+			'hooks' => array('data' => array('elementproperties', 'mocard', 'productcard'), 'entity' => '0'),
 			'models' => 1,
 		);
 
@@ -72,9 +72,10 @@ class modBoxlabel extends DolibarrModules
 			1 => array('BOXLABEL_ADDON_PDF', 'chaine', 'pdf_boxlabel_standard', 'PDF model for box labels', 0),
 		);
 
-		// Tab on Manufacturing Order cards
+		// Tabs on native object cards
 		$this->tabs = array();
 		$this->tabs[] = array('data' => 'mo:+boxlabel:BoxLabels:boxlabel@boxlabel:$user->hasRight(\'boxlabel\', \'boxlabel\', \'read\'):/boxlabel/mo_boxlabel.php?fk_mo=__ID__');
+		$this->tabs[] = array('data' => 'product:+boxlabel_template:LabelTemplate:boxlabel@boxlabel:$user->hasRight(\'boxlabel\', \'boxlabel\', \'read\'):/boxlabel/product_template.php?id=__ID__');
 
 		// Dictionaries
 		$this->dictionaries = array();
@@ -115,39 +116,21 @@ class modBoxlabel extends DolibarrModules
 		$this->rights[$r][4] = 'boxlabel';
 		$this->rights[$r][5] = 'delete';
 
-		// Main menu entries
+		// Main menu entries — placed under MRP left menu
 		$this->menu = array();
 		$r = 0;
 
-		// Top-level menu entry
+		// Box Labels header in MRP left menu (level 0 = section header)
 		$this->menu[$r] = array(
-			'fk_menu'  => 0,
-			'type'     => 'top',
-			'titre'    => 'Boxlabel',
-			'prefix'   => img_picto('', $this->picto, 'class="paddingright pictofixedwidth"'),
-			'mainmenu' => 'boxlabel',
-			'leftmenu' => '',
-			'url'      => '/boxlabel/boxlabel_list.php',
-			'langs'    => 'boxlabel@boxlabel',
-			'position' => 100,
-			'enabled'  => 'isModEnabled("boxlabel")',
-			'perms'    => '$user->hasRight("boxlabel", "boxlabel", "read")',
-			'target'   => '',
-			'user'     => 0,
-		);
-		$r++;
-
-		// Label List
-		$this->menu[$r] = array(
-			'fk_menu'  => 'fk_mainmenu=boxlabel',
+			'fk_menu'  => 'fk_mainmenu=mrp',
 			'type'     => 'left',
-			'titre'    => 'BoxLabelList',
+			'titre'    => 'BoxLabels',
 			'prefix'   => img_picto('', 'mrp', 'class="paddingright pictofixedwidth"'),
-			'mainmenu' => 'boxlabel',
-			'leftmenu' => 'boxlabel_boxlabel_list',
+			'mainmenu' => 'mrp',
+			'leftmenu' => 'boxlabel',
 			'url'      => '/boxlabel/boxlabel_list.php',
 			'langs'    => 'boxlabel@boxlabel',
-			'position' => 100,
+			'position' => 300,
 			'enabled'  => 'isModEnabled("boxlabel")',
 			'perms'    => '$user->hasRight("boxlabel", "boxlabel", "read")',
 			'target'   => '',
@@ -155,17 +138,17 @@ class modBoxlabel extends DolibarrModules
 		);
 		$r++;
 
-		// New Label
+		// New Box Label under the header
 		$this->menu[$r] = array(
-			'fk_menu'  => 'fk_mainmenu=boxlabel,fk_leftmenu=boxlabel_boxlabel_list',
+			'fk_menu'  => 'fk_mainmenu=mrp,fk_leftmenu=boxlabel',
 			'type'     => 'left',
 			'titre'    => 'NewBoxLabel',
 			'prefix'   => img_picto('', 'add', 'class="paddingright pictofixedwidth"'),
-			'mainmenu' => 'boxlabel',
-			'leftmenu' => 'boxlabel_boxlabel_new',
+			'mainmenu' => 'mrp',
+			'leftmenu' => 'boxlabel_new',
 			'url'      => '/boxlabel/boxlabel_card.php?action=create',
 			'langs'    => 'boxlabel@boxlabel',
-			'position' => 110,
+			'position' => 310,
 			'enabled'  => 'isModEnabled("boxlabel")',
 			'perms'    => '$user->hasRight("boxlabel", "boxlabel", "write")',
 			'target'   => '',

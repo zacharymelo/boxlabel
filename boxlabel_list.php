@@ -141,7 +141,6 @@ print_liste_field_titre('ProductLabel', $_SERVER['PHP_SELF'], 't.product_label',
 print_liste_field_titre('Batch', $_SERVER['PHP_SELF'], 't.batch', '', $param, '', $sortfield, $sortorder);
 print_liste_field_titre('SerialNumber', $_SERVER['PHP_SELF'], 't.serial_number', '', $param, '', $sortfield, $sortorder);
 print_liste_field_titre('ManufacturingDate', $_SERVER['PHP_SELF'], 't.date_manufactured', '', $param, '', $sortfield, $sortorder, 'center ');
-print_liste_field_titre('LabelQuantity', $_SERVER['PHP_SELF'], 't.qty_labels', '', $param, '', $sortfield, $sortorder, 'center ');
 print_liste_field_titre('Status', $_SERVER['PHP_SELF'], 't.status', '', $param, '', $sortfield, $sortorder, 'center ');
 print '</tr>';
 
@@ -152,7 +151,6 @@ print '<td class="liste_titre"><input type="text" name="search_product" class="m
 print '<td class="liste_titre"></td>';
 print '<td class="liste_titre"><input type="text" name="search_batch" class="maxwidth100" value="'.dol_escape_htmltag($search_batch).'"></td>';
 print '<td class="liste_titre"><input type="text" name="search_serial" class="maxwidth100" value="'.dol_escape_htmltag($search_serial).'"></td>';
-print '<td class="liste_titre"></td>';
 print '<td class="liste_titre"></td>';
 print '<td class="liste_titre center">';
 print $form->selectarray('search_status', array('0' => $langs->trans('Draft'), '1' => $langs->trans('Generated')), $search_status, 1, 0, 0, '', 0, 0, 0, '', 'maxwidth100');
@@ -201,9 +199,6 @@ while ($i < min($num, $limit)) {
 	// Date
 	print '<td class="center">'.dol_print_date($db->jdate($obj->date_manufactured), 'day').'</td>';
 
-	// Qty
-	print '<td class="center">'.$obj->qty_labels.'</td>';
-
 	// Status
 	print '<td class="center">'.$boxlabel->getLibStatut(5).'</td>';
 
@@ -212,7 +207,7 @@ while ($i < min($num, $limit)) {
 }
 
 if ($num == 0) {
-	print '<tr class="oddeven"><td colspan="8" class="opacitymedium">'.$langs->trans('NoRecordFound').'</td></tr>';
+	print '<tr class="oddeven"><td colspan="7" class="opacitymedium">'.$langs->trans('NoRecordFound').'</td></tr>';
 }
 
 print '</table>';

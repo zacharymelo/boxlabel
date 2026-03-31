@@ -76,6 +76,14 @@ print '<input type="text" name="BOXLABEL_ADDON_PDF" value="'.dol_escape_htmltag(
 print '</td>';
 print '<td class="opacitymedium">pdf_boxlabel_standard generates 4x6 inch labels</td></tr>';
 
+// Auto-generate labels on MO production
+print '<tr class="liste_titre"><td colspan="3">'.$langs->trans('AutoGenerateLabels').'</td></tr>';
+print '<tr class="oddeven"><td>'.$langs->trans('AutoGenerateLabels').'</td>';
+print '<td>';
+print ajax_constantonoff('BOXLABEL_AUTO_GENERATE');
+print '</td>';
+print '<td class="opacitymedium">'.$langs->trans('AutoGenerateLabelsDesc').'</td></tr>';
+
 // Debug mode
 print '<tr class="liste_titre"><td colspan="3">'.$langs->trans('Other').'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('DebugMode').'</td>';

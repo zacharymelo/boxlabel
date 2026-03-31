@@ -4,7 +4,24 @@
 /**
  * \file    core/modules/boxlabel/doc/pdf_boxlabel_standard.modules.php
  * \ingroup boxlabel
- * \brief   PDF model for 4x6 inch box labels with barcodes
+ * \brief   PDF model for 4x6 inch box labels with professional layout and barcodes
+ *
+ * Layout follows industrial label design conventions:
+ *   ┌─────────────────────────────┐
+ *   │         COMPANY LOGO        │  ← Header zone (brand)
+ *   ├─────────────────────────────┤
+ *   │                             │
+ *   │      PRODUCT NAME           │  ← Primary zone (what is it)
+ *   │      Description text       │
+ *   │                             │
+ *   ├──────────────┬──────────────┤
+ *   │  BATCH       │  SERIAL      │  ← Data zone (key-value pairs)
+ *   ├──────────────┼──────────────┤
+ *   │  MFG DATE    │  REF         │
+ *   ├──────────────┴──────────────┤
+ *   │      ||||| BARCODE |||||     │  ← Scan zone (machine-readable)
+ *   │          [QR CODE]          │
+ *   └─────────────────────────────┘
  */
 
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
@@ -15,7 +32,7 @@ require_once DOL_DOCUMENT_ROOT.'/custom/boxlabel/core/modules/boxlabel/modules_b
 
 
 /**
- * Class to generate 4x6 inch box label PDFs with Code 128 and QR barcodes
+ * Class to generate professionally designed 4x6 inch box label PDFs
  */
 class pdf_boxlabel_standard extends ModelePDFBoxLabel
 {
@@ -41,16 +58,16 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 	public $page_hauteur = 152.4;
 
 	/** @var float */
-	public $marge_gauche = 5;
+	public $marge_gauche = 4;
 
 	/** @var float */
-	public $marge_droite = 5;
+	public $marge_droite = 4;
 
 	/** @var float */
-	public $marge_haute = 5;
+	public $marge_haute = 4;
 
 	/** @var float */
-	public $marge_basse = 5;
+	public $marge_basse = 4;
 
 
 	/**
@@ -136,14 +153,14 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 		$sql .= " WHERE rowid = ".((int) $object->id);
 		$this->db->query($sql);
 
-		// Set file permissions
 		dolChmod($filepath);
 
 		return 1;
 	}
 
 	/**
-	 * Generate a single label page
+	 * Generate a single label page with adaptive layout.
+	 * Calculates available space and scales fonts/sizes to prevent overlap.
 	 *
 	 * @param TCPDF     $pdf         PDF instance
 	 * @param BoxLabel  $object      BoxLabel object
@@ -155,142 +172,445 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 
 		$pdf->AddPage('P', array($this->page_largeur, $this->page_hauteur));
 
-		$usableWidth = $this->page_largeur - $this->marge_gauche - $this->marge_droite;
-		$curY = $this->marge_haute;
+		$W = $this->page_largeur;   // 101.6
+		$H = $this->page_hauteur;   // 152.4
+		$L = $this->marge_gauche;   // 4
+		$R = $this->marge_droite;   // 4
+		$T = $this->marge_haute;    // 4
+		$B = $this->marge_basse;    // 4
+		$usable = $W - $L - $R;     // 93.6
 
-		// ---- 1. Company Logo ----
+		// Color palette — high contrast for B&W laser printers
+		$dataBg    = array(255, 255, 255);
+		$borderClr = array(0, 0, 0);
+		$labelClr  = array(80, 80, 80);
+		$valueClr  = array(0, 0, 0);
+
+		// ================================================================
+		// PRE-CALCULATE: Count data grid rows to determine sizing
+		// ================================================================
+		require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+		require_once DOL_DOCUMENT_ROOT.'/core/lib/product.lib.php';
+		$product = new Product($this->db);
+		$countryName = '';
+		$weightStr = '';
+		$dimsStr = '';
+		$volumeStr = '';
+		$customCode = '';
+		$surfaceStr = '';
+		$netMeasureStr = '';
+		$extraFieldData = array(); // key => array('label' => ..., 'value' => ...)
+
+		if (!empty($object->fk_product) && $object->fk_product > 0 && $product->fetch($object->fk_product) > 0) {
+			if (!empty($product->country_id)) {
+				$countryName = getCountry($product->country_id, 'all', $this->db);
+				if (is_array($countryName) || is_object($countryName)) {
+					$countryName = is_object($countryName) ? $countryName->label : (isset($countryName['label']) ? $countryName['label'] : '');
+				}
+			}
+			if (!empty($product->weight) && $product->weight > 0) {
+				$weightUnit = measuring_units_string($product->weight_units, 'weight', 0, 1);
+				$weightStr = $product->weight.' '.$weightUnit;
+			}
+			$dimParts = array();
+			$dimUnit = '';
+			if (!empty($product->length) && $product->length > 0) {
+				$dimParts[] = $product->length;
+				$dimUnit = measuring_units_string($product->length_units, 'size', 0, 1);
+			}
+			if (!empty($product->width) && $product->width > 0) {
+				$dimParts[] = $product->width;
+			}
+			if (!empty($product->height) && $product->height > 0) {
+				$dimParts[] = $product->height;
+			}
+			if (count($dimParts) > 0) {
+				$dimsStr = implode(' x ', $dimParts).(!empty($dimUnit) ? ' '.$dimUnit : '');
+			}
+			if (!empty($product->volume) && $product->volume > 0) {
+				$volUnit = measuring_units_string($product->volume_units, 'volume', 0, 1);
+				$volumeStr = $product->volume.' '.$volUnit;
+			}
+			if (!empty($product->surface) && $product->surface > 0) {
+				$surfUnit = measuring_units_string($product->surface_units, 'surface', 0, 1);
+				$surfaceStr = $product->surface.' '.$surfUnit;
+			}
+			if (!empty($product->net_measure) && $product->net_measure > 0) {
+				$nmUnit = measuring_units_string($product->net_measure_units, 'weight', 0, 1);
+				$netMeasureStr = $product->net_measure.' '.$nmUnit;
+			}
+			if (!empty($product->customcode)) {
+				$customCode = $product->customcode;
+			}
+
+			// Collect populated extrafields with their labels
+			if (!empty($product->array_options)) {
+				$ef = new ExtraFields($this->db);
+				$ef->fetch_name_optionals_label('product');
+				foreach ($product->array_options as $key => $val) {
+					if (!empty($val)) {
+						$attrname = preg_replace('/^options_/', '', $key);
+						$extralabel = isset($ef->attributes['product']['label'][$attrname]) ? $ef->attributes['product']['label'][$attrname] : $attrname;
+						$extraFieldData['extra_'.$attrname] = array('label' => strtoupper($extralabel), 'value' => $val);
+					}
+				}
+			}
+		}
+
+		// Load per-product label template (which fields to show)
+		// Cascading: check product first, then fall back to parent product's template
+		$tplFields = null; // null = show all populated (default behavior)
+		if (!empty($object->fk_product) && $object->fk_product > 0) {
+			// Check this product's template
+			$sqlTpl = "SELECT enabled_fields FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+			$sqlTpl .= " WHERE fk_product = ".((int) $object->fk_product);
+			$sqlTpl .= " AND entity = ".((int) $conf->entity);
+			$sqlTpl .= " LIMIT 1";
+			$resTpl = $this->db->query($sqlTpl);
+			if ($resTpl && ($objTpl = $this->db->fetch_object($resTpl))) {
+				$tplFields = array_filter(array_map('trim', explode(',', $objTpl->enabled_fields)));
+			}
+
+			// If no template on this product, check parent (variant inheritance)
+			if ($tplFields === null) {
+				$sqlParent = "SELECT pac.fk_product_parent FROM ".MAIN_DB_PREFIX."product_attribute_combination as pac";
+				$sqlParent .= " WHERE pac.fk_product_child = ".((int) $object->fk_product);
+				$sqlParent .= " AND pac.entity IN (".getEntity('product').")";
+				$sqlParent .= " LIMIT 1";
+				$resParent = $this->db->query($sqlParent);
+				if ($resParent && ($objParent = $this->db->fetch_object($resParent))) {
+					$sqlTpl2 = "SELECT enabled_fields FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+					$sqlTpl2 .= " WHERE fk_product = ".((int) $objParent->fk_product_parent);
+					$sqlTpl2 .= " AND entity = ".((int) $conf->entity);
+					$sqlTpl2 .= " LIMIT 1";
+					$resTpl2 = $this->db->query($sqlTpl2);
+					if ($resTpl2 && ($objTpl2 = $this->db->fetch_object($resTpl2))) {
+						$tplFields = array_filter(array_map('trim', explode(',', $objTpl2->enabled_fields)));
+					}
+				}
+			}
+		}
+
+		// Helper: field is enabled if no template (show all) or field is in template list
+		$fieldOn = function($key) use ($tplFields) {
+			return ($tplFields === null || in_array($key, $tplFields));
+		};
+
+		// Build list of optional data cells to render
+		// If template exists: show fields the user selected (even if empty)
+		// If no template: show fields that have data
+		$optionalCells = array();
+
+		// Core fields: each is a label => value pair
+		$allCoreFields = array(
+			'weight'      => array('label' => 'WEIGHT',            'value' => $weightStr),
+			'dimensions'  => array('label' => 'DIMENSIONS',        'value' => $dimsStr),
+			'volume'      => array('label' => 'VOLUME',            'value' => $volumeStr),
+			'surface'     => array('label' => 'SURFACE',           'value' => $surfaceStr),
+			'net_measure' => array('label' => 'NET MEASURE',       'value' => $netMeasureStr),
+			'country'     => array('label' => 'COUNTRY OF ORIGIN', 'value' => !empty($countryName) ? $outputlangs->convToOutputCharset($countryName) : ''),
+			'hs_code'     => array('label' => 'HS CODE',           'value' => !empty($customCode) ? $outputlangs->convToOutputCharset($customCode) : ''),
+		);
+
+		// Add extrafields
+		foreach ($extraFieldData as $efKey => $efData) {
+			$allCoreFields[$efKey] = array('label' => $efData['label'], 'value' => $outputlangs->convToOutputCharset($efData['value']));
+		}
+
+		// Filter: if template exists, show selected fields; otherwise show populated fields
+		foreach ($allCoreFields as $fKey => $fData) {
+			if ($tplFields !== null) {
+				// Template exists — show if user selected it
+				if ($fieldOn($fKey)) {
+					$optionalCells[] = array('label' => $fData['label'], 'value' => !empty($fData['value']) ? $fData['value'] : '—');
+				}
+			} else {
+				// No template — show if data is populated
+				if (!empty($fData['value'])) {
+					$optionalCells[] = array('label' => $fData['label'], 'value' => $fData['value']);
+				}
+			}
+		}
+
+		// Count grid rows: 2 always + ceil(optionalCells / 2) for paired rows
+		$optionalRows = (int) ceil(count($optionalCells) / 2);
+		$gridRows = 2 + $optionalRows;
+
+		// ================================================================
+		// ADAPTIVE SIZING — scale everything based on content density
+		// ================================================================
+		// Fixed zones: header(16) + barcode(20) + padding(~12)
+		$fixedH = 48;
+		$availableH = $H - $T - $B - $fixedH;
+
+		// Budget: product name/desc ~15mm, product barcode ~20mm, serial barcode ~22mm (bottom-pinned)
+		$prodBarcodeReserve = 20;
+		$gridBudget = $availableH - $prodBarcodeReserve - 15; // 15mm for product name/desc
+		$cellH = min(12, max(8, floor($gridBudget / $gridRows)));
+
+		// Scale fonts based on density
+		$titleFont = ($gridRows <= 3) ? 16 : 14;
+		$descFont = ($gridRows <= 3) ? 8 : 7;
+		$valueFontBase = ($cellH >= 11) ? 10 : (($cellH >= 9) ? 8 : 7);
+		$labelFont = ($cellH >= 10) ? 6 : 5;
+
+		$curY = $T;
+
+		// ================================================================
+		// ZONE 1: HEADER — Logo + Company Name
+		// ================================================================
+		$headerH = 20;
+
 		$logo = $mysoc->logo;
-		$logoHeight = 0;
+		$logoEndX = $L;
 		if (!empty($logo)) {
 			$logoFile = $conf->mycompany->dir_output.'/logos/'.$logo;
 			if (file_exists($logoFile)) {
-				$logoHeight = 15;
-				// Center the logo
-				$logoWidth = 0; // Auto-calculate width from height
-				$info = pdf_getHeightForLogo($logoFile);
-				$logoWidth = min(50, $info * 15 / max(1, $info)); // Max 50mm wide
-				$xLogo = $this->marge_gauche + ($usableWidth - min(50, 50)) / 2;
-				$pdf->Image($logoFile, $xLogo, $curY, 0, $logoHeight);
-				$curY += $logoHeight + 3;
+				$pdf->Image($logoFile, $L + 2, $curY + 2, 0, $headerH - 4);
+				$logoEndX = $L + 20;
 			}
 		}
 
-		if ($logoHeight == 0) {
-			// No logo — print company name instead
-			$pdf->SetFont('', 'B', 10);
-			$pdf->SetXY($this->marge_gauche, $curY);
-			$pdf->Cell($usableWidth, 5, $outputlangs->convToOutputCharset($mysoc->name), 0, 1, 'C');
-			$curY += 8;
-		}
+		$textAreaW = $usable - ($logoEndX - $L) - 4;
 
-		// ---- 2. Product Name ----
-		$pdf->SetFont('', 'B', 16);
-		$pdf->SetXY($this->marge_gauche, $curY);
+		// Company name — large, fills the row
+		$pdf->SetFont('helvetica', 'B', 14);
+		$pdf->SetTextColor($valueClr[0], $valueClr[1], $valueClr[2]);
+		$pdf->SetXY($logoEndX + 2, $curY + 3);
+		$pdf->Cell($textAreaW, 6, 'Digital Properties Group Inc.', 0, 0, 'L');
+
+		// Location — below company name
+		$pdf->SetFont('helvetica', '', 10);
+		$pdf->SetTextColor($labelClr[0], $labelClr[1], $labelClr[2]);
+		$pdf->SetXY($logoEndX + 2, $curY + 10);
+		$pdf->Cell($textAreaW, 4, 'Smithville, Ontario, Canada', 0, 0, 'L');
+
+		$curY += $headerH;
+		$pdf->SetDrawColor($borderClr[0], $borderClr[1], $borderClr[2]);
+		$pdf->SetLineWidth(0.4);
+		$pdf->Line($L, $curY, $L + $usable, $curY);
+		$pdf->SetLineWidth(0.3);
+
+		// ================================================================
+		// ZONE 2: PRODUCT NAME + DESCRIPTION
+		// ================================================================
 		$productName = $outputlangs->convToOutputCharset($object->product_label);
-		$pdf->MultiCell($usableWidth, 6, $productName, 0, 'C');
-		$curY = $pdf->GetY() + 2;
+		$pdf->SetTextColor($valueClr[0], $valueClr[1], $valueClr[2]);
 
-		// ---- 3. Product Description ----
-		if (!empty($object->product_description)) {
-			$pdf->SetFont('', '', 9);
-			$pdf->SetXY($this->marge_gauche, $curY);
-			$desc = dol_string_nohtmltag($object->product_description, 1);
-			$desc = $outputlangs->convToOutputCharset($desc);
-			// Limit description length to avoid overflow
-			if (dol_strlen($desc) > 200) {
-				$desc = dol_substr($desc, 0, 197).'...';
-			}
-			$pdf->MultiCell($usableWidth, 4, $desc, 0, 'L');
-			$curY = $pdf->GetY() + 2;
-		}
-
-		// ---- 4. Horizontal Rule ----
-		$pdf->SetDrawColor(0, 0, 0);
-		$pdf->Line($this->marge_gauche, $curY, $this->page_largeur - $this->marge_droite, $curY);
-		$curY += 3;
-
-		// ---- 5. Batch & Serial ----
-		$pdf->SetFont('', 'B', 11);
-		$pdf->SetXY($this->marge_gauche, $curY);
-
-		$batchSerial = '';
-		if (!empty($object->batch)) {
-			$batchSerial .= 'Batch: '.$outputlangs->convToOutputCharset($object->batch);
-		}
-		if (!empty($object->serial_number)) {
-			if (!empty($batchSerial)) {
-				$batchSerial .= '  |  ';
-			}
-			$batchSerial .= 'Serial: '.$outputlangs->convToOutputCharset($object->serial_number);
-		}
-		$pdf->Cell($usableWidth, 6, $batchSerial, 0, 1, 'C');
+		$curY += 2;
+		$pdf->SetFont('helvetica', 'B', $titleFont);
+		$pdf->SetXY($L, $curY);
+		$pdf->MultiCell($usable, $titleFont * 0.4, $productName, 0, 'C');
 		$curY = $pdf->GetY() + 1;
 
-		// ---- 6. Manufacturing Date ----
-		if (!empty($object->date_manufactured)) {
-			$pdf->SetFont('', '', 10);
-			$pdf->SetXY($this->marge_gauche, $curY);
-			$dateStr = 'Mfg Date: '.dol_print_date($object->date_manufactured, 'day');
-			$pdf->Cell($usableWidth, 5, $dateStr, 0, 1, 'C');
-			$curY = $pdf->GetY() + 3;
+		if (!empty($object->product_description)) {
+			$desc = dol_string_nohtmltag($object->product_description, 1);
+			$desc = $outputlangs->convToOutputCharset($desc);
+			$maxDescLen = ($gridRows <= 3) ? 150 : 100;
+			if (dol_strlen($desc) > $maxDescLen) {
+				$desc = dol_substr($desc, 0, $maxDescLen - 3).'...';
+			}
+			$pdf->SetFont('helvetica', '', $descFont);
+			$pdf->SetTextColor($labelClr[0], $labelClr[1], $labelClr[2]);
+			$pdf->SetXY($L + 2, $curY);
+			$pdf->MultiCell($usable - 4, 3, $desc, 0, 'C');
+			$curY = $pdf->GetY();
 		}
 
-		// ---- 7. Code 128 Barcode (Serial Number) ----
-		$barcodeData = !empty($object->serial_number) ? $object->serial_number : $object->ref;
-		if (!empty($barcodeData)) {
-			$barcodeWidth = min(70, $usableWidth - 10);
-			$barcodeHeight = 18;
-			$xBarcode = $this->marge_gauche + ($usableWidth - $barcodeWidth) / 2;
+		$curY += 1;
 
-			$barcodeStyle = array(
-				'position' => '',
-				'align' => 'C',
-				'stretch' => false,
-				'fitwidth' => true,
-				'cellfitalign' => '',
-				'border' => false,
-				'hpadding' => 'auto',
-				'vpadding' => 'auto',
-				'fgcolor' => array(0, 0, 0),
-				'bgcolor' => false,
-				'text' => true,
-				'font' => 'helvetica',
-				'fontsize' => 7,
-				'stretchtext' => 4,
+		// ================================================================
+		// ZONE 3: PRODUCT BARCODE — Code 128 encoding product barcode value
+		// ================================================================
+		$productBarcode = '';
+		if (!empty($object->fk_product) && is_object($product)) {
+			// Use the product's barcode value if set, fall back to product ref
+			if (!empty($product->barcode)) {
+				$productBarcode = $product->barcode;
+			} elseif (!empty($product->ref)) {
+				$productBarcode = $product->ref;
+			}
+		}
+		if (!empty($productBarcode)) {
+			$prodBarcodeH = 14;
+			$prodBarcodeW = min(75, $usable - 6);
+			$xProdBarcode = $L + ($usable - $prodBarcodeW) / 2;
+
+			$prodBarcodeStyle = array(
+				'position' => '', 'align' => 'C', 'stretch' => false,
+				'fitwidth' => false, 'cellfitalign' => 'C', 'border' => false,
+				'hpadding' => 2, 'vpadding' => 'auto',
+				'fgcolor' => array(0, 0, 0), 'bgcolor' => false,
+				'text' => true, 'font' => 'helvetica', 'fontsize' => 7, 'stretchtext' => 4,
 			);
 
-			$pdf->write1DBarcode($barcodeData, 'C128', $xBarcode, $curY, $barcodeWidth, $barcodeHeight, 0.4, $barcodeStyle, 'N');
-			$curY += $barcodeHeight + 4;
+			// Label above barcode
+			$pdf->SetFont('helvetica', 'B', 6);
+			$pdf->SetTextColor($labelClr[0], $labelClr[1], $labelClr[2]);
+			$pdf->SetXY($L, $curY);
+			$pdf->Cell($usable, 3, 'PRODUCT', 0, 0, 'C');
+			$curY += 3;
+
+			$pdf->write1DBarcode($productBarcode, 'C128', $xProdBarcode, $curY, $prodBarcodeW, $prodBarcodeH, 0.4, $prodBarcodeStyle, 'N');
+			$curY += $prodBarcodeH + 2;
 		}
 
-		// ---- 8. QR Code ----
-		$qrData = json_encode(array(
-			'ref' => $object->ref,
-			'product' => $object->product_label,
-			'batch' => $object->batch,
-			'serial' => $object->serial_number,
-			'date' => !empty($object->date_manufactured) ? dol_print_date($object->date_manufactured, 'daytext') : '',
-		));
+		// ================================================================
+		// ZONE 4: DATA GRID — Adaptive cell heights
+		// ================================================================
+		$gridTop = $curY;
+		$halfW = $usable / 2;
 
-		$qrSize = 35;
-		$xQR = $this->marge_gauche + ($usableWidth - $qrSize) / 2;
+		$pdf->SetDrawColor($borderClr[0], $borderClr[1], $borderClr[2]);
+		$pdf->SetLineWidth(0.3);
+		$pdf->SetFillColor($dataBg[0], $dataBg[1], $dataBg[2]);
 
-		// Ensure QR code fits on the page
-		$remainingHeight = $this->page_hauteur - $this->marge_basse - $curY;
-		if ($qrSize > $remainingHeight) {
-			$qrSize = max(20, $remainingHeight - 2);
+		$rowCount = 0;
+
+		// Row 1: MO Ref (batch) | Serial (always)
+		$this->_drawDataCell($pdf, $L, $curY, $halfW, $cellH, 'MFG ORDER',
+			!empty($object->batch) ? $outputlangs->convToOutputCharset($object->batch) : '—',
+			$labelClr, $valueClr, $dataBg, $labelFont, $valueFontBase);
+		$this->_drawDataCell($pdf, $L + $halfW, $curY, $halfW, $cellH, 'SERIAL',
+			!empty($object->serial_number) ? $outputlangs->convToOutputCharset($object->serial_number) : '—',
+			$labelClr, $valueClr, $dataBg, $labelFont, $valueFontBase);
+		$curY += $cellH;
+		$rowCount++;
+
+		// Row 2: Mfg Date (full width)
+		$mfgDate = !empty($object->date_manufactured) ? dol_print_date($object->date_manufactured, 'day') : '—';
+		$this->_drawDataCell($pdf, $L, $curY, $usable, $cellH, 'MFG DATE',
+			$mfgDate, $labelClr, $valueClr, $dataBg, $labelFont, $valueFontBase);
+		$curY += $cellH;
+		$rowCount++;
+
+		// Dynamic rows: render optional cells in pairs
+		for ($ci = 0; $ci < count($optionalCells); $ci += 2) {
+			$left = $optionalCells[$ci];
+			$right = isset($optionalCells[$ci + 1]) ? $optionalCells[$ci + 1] : null;
+
+			if ($right !== null) {
+				// Two cells side by side
+				$this->_drawDataCell($pdf, $L, $curY, $halfW, $cellH, $left['label'],
+					$left['value'], $labelClr, $valueClr, $dataBg, $labelFont, $valueFontBase);
+				$this->_drawDataCell($pdf, $L + $halfW, $curY, $halfW, $cellH, $right['label'],
+					$right['value'], $labelClr, $valueClr, $dataBg, $labelFont, $valueFontBase);
+			} else {
+				// Single cell full width (odd number of fields)
+				$this->_drawDataCell($pdf, $L, $curY, $usable, $cellH, $left['label'],
+					$left['value'], $labelClr, $valueClr, $dataBg, $labelFont, $valueFontBase);
+			}
+			$curY += $cellH;
+			$rowCount++;
 		}
 
-		$qrStyle = array(
-			'border' => false,
-			'vpadding' => 'auto',
-			'hpadding' => 'auto',
-			'fgcolor' => array(0, 0, 0),
-			'bgcolor' => false,
-			'module_width' => 1,
-			'module_height' => 1,
-		);
+		// Outer border
+		$pdf->SetDrawColor($borderClr[0], $borderClr[1], $borderClr[2]);
+		$pdf->SetLineWidth(0.5);
+		$pdf->Rect($L, $gridTop, $usable, $cellH * $rowCount);
+		$pdf->SetLineWidth(0.3);
 
-		$pdf->write2DBarcode($qrData, 'QRCODE,M', $xQR, $curY, $qrSize, $qrSize, $qrStyle, 'N');
+		// ================================================================
+		// ZONE 5: SERIAL BARCODE — Code 128 centered, pinned to bottom
+		// ================================================================
+		$serialData = !empty($object->serial_number) ? $object->serial_number : $object->ref;
+		if (!empty($serialData)) {
+			$barcodeHeight = 16;
+			$labelH = 3;
+			$serialBarcodeW = min(75, $usable - 6);
+			$xSerialBarcode = $L + ($usable - $serialBarcodeW) / 2;
+			$barcodeY = $H - $B - $barcodeHeight;
+			$labelY = $barcodeY - $labelH - 1;
+
+			// Safety: ensure barcode doesn't overlap grid
+			if ($labelY < $curY + 2) {
+				$barcodeHeight = max(10, $H - $B - $curY - $labelH - 4);
+				$barcodeY = $H - $B - $barcodeHeight;
+				$labelY = $barcodeY - $labelH - 1;
+			}
+
+			// Label above barcode
+			$pdf->SetFont('helvetica', 'B', 6);
+			$pdf->SetTextColor($labelClr[0], $labelClr[1], $labelClr[2]);
+			$pdf->SetXY($L, $labelY);
+			$pdf->Cell($usable, $labelH, 'SERIAL NUMBER', 0, 0, 'C');
+
+			$barcodeStyle = array(
+				'position' => '', 'align' => 'C', 'stretch' => false,
+				'fitwidth' => false, 'cellfitalign' => 'C', 'border' => false,
+				'hpadding' => 2, 'vpadding' => 'auto',
+				'fgcolor' => array(0, 0, 0), 'bgcolor' => false,
+				'text' => true, 'font' => 'helvetica', 'fontsize' => 8, 'stretchtext' => 4,
+			);
+
+			$pdf->write1DBarcode($serialData, 'C128', $xSerialBarcode, $barcodeY, $serialBarcodeW, $barcodeHeight, 0.4, $barcodeStyle, 'N');
+		}
+	}
+
+	/**
+	 * Draw a bordered data cell with a small label above a large value.
+	 *
+	 * @param TCPDF  $pdf       PDF instance
+	 * @param float  $x         X position
+	 * @param float  $y         Y position
+	 * @param float  $w         Cell width
+	 * @param float  $h         Cell height
+	 * @param string $label     Small label text (e.g. "BATCH")
+	 * @param string $value     Large value text (e.g. "SN-12345")
+	 * @param array  $labelClr  RGB for label text
+	 * @param array  $valueClr  RGB for value text
+	 * @param array  $bgClr     RGB for background fill
+	 */
+	/**
+	 * Draw a bordered data cell with a small label above a large value.
+	 * Font sizes adapt based on cell height and value length.
+	 *
+	 * @param TCPDF  $pdf          PDF instance
+	 * @param float  $x            X position
+	 * @param float  $y            Y position
+	 * @param float  $w            Cell width
+	 * @param float  $h            Cell height
+	 * @param string $label        Small label text (e.g. "BATCH")
+	 * @param string $value        Large value text (e.g. "SN-12345")
+	 * @param array  $labelClr     RGB for label text
+	 * @param array  $valueClr     RGB for value text
+	 * @param array  $bgClr        RGB for background fill
+	 * @param int    $labelFontSz  Label font size (default 6)
+	 * @param int    $valueFontSz  Base value font size (default 10, auto-shrinks for long text)
+	 */
+	private function _drawDataCell(&$pdf, $x, $y, $w, $h, $label, $value, $labelClr, $valueClr, $bgClr, $labelFontSz = 6, $valueFontSz = 10)
+	{
+		// Background + border — solid black for B&W laser printers
+		$pdf->SetFillColor($bgClr[0], $bgClr[1], $bgClr[2]);
+		$pdf->SetDrawColor(0, 0, 0);
+		$pdf->SetLineWidth(0.3);
+		$pdf->Rect($x, $y, $w, $h, 'DF');
+
+		// Adaptive vertical positions based on cell height
+		$labelTopPad = max(0.8, $h * 0.1);
+		$labelH = $labelFontSz * 0.5;
+		$valueTopY = $y + $labelTopPad + $labelH + max(0.5, $h * 0.05);
+		$valueH = $h - ($valueTopY - $y) - 1;
+
+		// Label — small uppercase
+		$pdf->SetFont('helvetica', 'B', $labelFontSz);
+		$pdf->SetTextColor($labelClr[0], $labelClr[1], $labelClr[2]);
+		$pdf->SetXY($x + 1.5, $y + $labelTopPad);
+		$pdf->Cell($w - 3, $labelH, $label, 0, 0, 'L');
+
+		// Value — auto-shrink based on text length and available width
+		$fontSize = $valueFontSz;
+		$valLen = dol_strlen($value);
+		if ($valLen > 20) {
+			$fontSize = max(6, $valueFontSz - 2);
+		}
+		if ($valLen > 30) {
+			$fontSize = max(5, $valueFontSz - 3);
+		}
+
+		$pdf->SetFont('helvetica', 'B', $fontSize);
+		$pdf->SetTextColor($valueClr[0], $valueClr[1], $valueClr[2]);
+		$pdf->SetXY($x + 1.5, $valueTopY);
+		$pdf->Cell($w - 3, $valueH, $value, 0, 0, 'L');
 	}
 }

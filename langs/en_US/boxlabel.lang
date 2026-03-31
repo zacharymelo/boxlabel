@@ -57,11 +57,54 @@ BoxLabelsTab = Box Labels
 
 # Cascading form
 SelectProductFirst = Select a product first
+SelectMOFirst = Select a Manufacturing Order first
 SelectSerial = Select Serial/Batch
 SelectMO = Select Manufacturing Order
-NoSerialsFound = No serials in stock for this product
+NoSerialsFound = No serials in stock for this MO
 NoMOsFound = No Manufacturing Orders found
 Loading = Loading
+
+# Auto-generation
+AutoGenerateLabels = Auto-generate labels on MO production
+AutoGenerateLabelsDesc = When enabled, automatically creates box labels when a Manufacturing Order produces items. Requires the product to also have auto-labeling enabled on its product card.
+AutoLabelProduct = Auto-generate box labels
+AutoLabelProductDesc = When checked, box labels will be automatically created when this product is produced via a Manufacturing Order
+AutoLabelEnabled = Auto-label enabled
+AutoLabelNotSet = Not configured
+
+# Label Template
+LabelTemplate = Label Template
+LabelTemplateDesc = Select which data fields appear on the box label for this product
+LabelTemplateAlwaysShown = Always shown on every label
+LabelTemplateSaved = Label template saved
+LabelTemplateInherited = This variant inherits its label template from parent product %s. Saving here will override the parent settings for this variant only.
+LabelTemplateOverride = Set custom template for this variant
+FieldWeight = Weight
+FieldDimensions = Dimensions (L x W x H)
+FieldVolume = Volume
+FieldColor = Color
+FieldCountry = Country of Origin
+FieldHSCode = HS Code
+FieldWeightDesc = Product weight from the product card
+FieldDimensionsDesc = Length, width, and height from the product card
+FieldVolumeDesc = Product volume from the product card
+FieldColorDesc = Color from product extra fields
+FieldCountryDesc = Country of origin from the product card
+FieldHSCodeDesc = Customs/tariff code from the product card
+FieldSurface = Surface Area
+FieldSurfaceDesc = Product surface area from the product card
+FieldNetMeasure = Net Measure
+FieldNetMeasureDesc = Net measure/weight from the product card
+FieldBarcode = Barcode
+FieldBarcodeDesc = Product barcode value from the product card
+ExtraField = Product extra field
+Field = Field
+Enabled = Enabled
+Empty = empty
+CopyTemplateFrom = Copy Template From Another Product
+CopyTemplateFromDesc = Select a product to copy its label template configuration to this product
+LabelTemplateCopied = Label template copied successfully
+LabelTemplateNotFound = No label template found on the selected product
 
 # Linked objects
 LinkToBoxLabel = Link to Box Label

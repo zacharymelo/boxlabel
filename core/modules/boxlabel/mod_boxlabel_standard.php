@@ -45,7 +45,10 @@ class mod_boxlabel_standard extends ModeleNumRefBoxlabel
 		global $db, $conf;
 
 		$ymd = dol_print_date(dol_now(), '%Y%m%d');
-		$posidx = strlen($this->prefix) + 10; // BXL- = 4, YYYYMMDD = 8, - = 1, total prefix+date = 13, index starts at 14
+		// BXL-20260330-0001
+		// 123456789012345678
+		// Numeric suffix starts at position 14 (1-indexed): prefix(3) + dash(1) + date(8) + dash(1) + 1 = 14
+		$posidx = strlen($this->prefix) + 1 + 8 + 1 + 1; // = 14
 
 		$sql = "SELECT MAX(CAST(SUBSTRING(ref FROM ".$posidx.") AS SIGNED)) as max_num";
 		$sql .= " FROM ".MAIN_DB_PREFIX."box_label";

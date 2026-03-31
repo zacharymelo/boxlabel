@@ -203,7 +203,6 @@ if ($resql) {
 	print '<td>'.$langs->trans('Batch').'</td>';
 	print '<td>'.$langs->trans('SerialNumber').'</td>';
 	print '<td class="center">'.$langs->trans('ManufacturingDate').'</td>';
-	print '<td class="center">'.$langs->trans('LabelQuantity').'</td>';
 	print '<td class="center">'.$langs->trans('Status').'</td>';
 	print '<td class="center">'.$langs->trans('Actions').'</td>';
 	print '</tr>';
@@ -227,7 +226,6 @@ if ($resql) {
 		print '<td>'.dol_escape_htmltag($obj->batch).'</td>';
 		print '<td>'.dol_escape_htmltag($obj->serial_number).'</td>';
 		print '<td class="center">'.dol_print_date($db->jdate($obj->date_manufactured), 'day').'</td>';
-		print '<td class="center">'.$obj->qty_labels.'</td>';
 		print '<td class="center">'.$label->getLibStatut(3).'</td>';
 		print '<td class="center nowraponall">';
 

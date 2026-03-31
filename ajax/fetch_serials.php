@@ -29,6 +29,7 @@ if (empty($user->id) || !$user->hasRight('boxlabel', 'boxlabel', 'read')) {
 }
 
 $fk_product = GETPOSTINT('fk_product');
+$fk_mo = GETPOSTINT('fk_mo');
 
 if ($fk_product <= 0) {
 	echo json_encode(array('product' => null, 'serials' => array()));
@@ -55,10 +56,25 @@ if ($res_prod) {
 }
 
 // Fetch in-stock serials (qty > 0 across all warehouses)
-$sql = "SELECT pl.rowid as lot_id, pl.batch, pl.manufacturing_date, SUM(pb.qty) as total_qty";
+// Coalesce manufacturing_date from multiple sources:
+//   1. llx_product_lot.manufacturing_date (explicit lot date)
+//   2. llx_mrp_production produced line date (when the MO produced this batch)
+//   3. Earliest stock movement date for this batch (first time it entered inventory)
+$sql = "SELECT pl.rowid as lot_id, pl.batch, pl.manufacturing_date";
+$sql .= ", SUM(pb.qty) as total_qty";
+$sql .= ", (SELECT mp.date_creation FROM ".MAIN_DB_PREFIX."mrp_production as mp";
+$sql .= "   WHERE mp.batch = pl.batch AND mp.fk_product = pl.fk_product";
+$sql .= "   AND mp.role = 'produced' ORDER BY mp.date_creation DESC LIMIT 1) as mo_prod_date";
+$sql .= ", (SELECT sm.datem FROM ".MAIN_DB_PREFIX."stock_mouvement as sm";
+$sql .= "   WHERE sm.batch = pl.batch AND sm.fk_product = pl.fk_product";
+$sql .= "   AND sm.value > 0 ORDER BY sm.datem ASC LIMIT 1) as first_stock_date";
 $sql .= " FROM ".MAIN_DB_PREFIX."product_lot as pl";
 $sql .= " JOIN ".MAIN_DB_PREFIX."product_batch as pb ON pb.batch = pl.batch";
 $sql .= " JOIN ".MAIN_DB_PREFIX."product_stock as ps ON ps.rowid = pb.fk_product_stock AND ps.fk_product = pl.fk_product";
+// When MO is specified, only show serials produced by that MO
+if ($fk_mo > 0) {
+	$sql .= " JOIN ".MAIN_DB_PREFIX."mrp_production as mop ON mop.batch = pl.batch AND mop.fk_product = pl.fk_product AND mop.fk_mo = ".((int) $fk_mo)." AND mop.role = 'produced'";
+}
 $sql .= " WHERE pl.fk_product = ".((int) $fk_product);
 $sql .= " AND pl.entity IN (".getEntity('productlot').")";
 $sql .= " GROUP BY pl.rowid, pl.batch, pl.manufacturing_date";
@@ -73,8 +89,17 @@ if ($resql) {
 		$mfg_year = '';
 		$mfg_display = '';
 
-		if (!empty($obj->manufacturing_date)) {
-			$mfg_ts = $db->jdate($obj->manufacturing_date);
+		// Coalesce: lot date → MO production date → first stock movement date
+		$raw_date = $obj->manufacturing_date;
+		if (empty($raw_date) && !empty($obj->mo_prod_date)) {
+			$raw_date = $obj->mo_prod_date;
+		}
+		if (empty($raw_date) && !empty($obj->first_stock_date)) {
+			$raw_date = $obj->first_stock_date;
+		}
+
+		if (!empty($raw_date)) {
+			$mfg_ts = $db->jdate($raw_date);
 			$mfg_display = dol_print_date($mfg_ts, 'day');
 			$mfg_day = dol_print_date($mfg_ts, '%d');
 			$mfg_month = dol_print_date($mfg_ts, '%m');
