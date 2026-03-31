@@ -226,12 +226,32 @@ if ($res_check) {
 $boxlabel_tmp = new BoxLabel($db);
 $label_count = $boxlabel_tmp->countForMo($mo->id);
 
+// Check how many produced serials still need labels (not yet generated)
+$unlabeled = 0;
+if ($has_produced > 0) {
+	$sql_unlabeled = "SELECT COUNT(DISTINCT mp.batch) as cnt FROM ".MAIN_DB_PREFIX."mrp_production as mp";
+	$sql_unlabeled .= " WHERE mp.fk_mo = ".((int) $mo->id);
+	$sql_unlabeled .= " AND mp.role = 'produced'";
+	$sql_unlabeled .= " AND mp.batch IS NOT NULL AND mp.batch != ''";
+	$sql_unlabeled .= " AND mp.batch NOT IN (SELECT bl.serial_number FROM ".MAIN_DB_PREFIX."box_label as bl";
+	$sql_unlabeled .= "   WHERE bl.fk_mo = ".((int) $mo->id);
+	$sql_unlabeled .= "   AND bl.entity IN (".getEntity('boxlabel')."))";
+	$res_unlabeled = $db->query($sql_unlabeled);
+	if ($res_unlabeled) {
+		$obj_unlabeled = $db->fetch_object($res_unlabeled);
+		$unlabeled = (int) $obj_unlabeled->cnt;
+	}
+}
+
 // Action buttons
 print '<div class="tabsAction">';
 
-if ($permwrite && $has_produced > 0) {
-	// Generate labels (creates records + PDFs for any serials not yet labeled)
-	print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id.'&action=generate&token='.newToken().'">'.$langs->trans('GenerateBoxLabels').' ('.$has_produced.' serials)</a>';
+if ($permwrite && $has_produced > 0 && $unlabeled > 0) {
+	// Generate labels — still have unlabeled serials
+	print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id.'&action=generate&token='.newToken().'">'.$langs->trans('GenerateBoxLabels').' ('.$unlabeled.' serials)</a>';
+} elseif ($has_produced > 0 && $unlabeled == 0 && $label_count > 0) {
+	// All serials already labeled — grey out
+	print '<span class="butActionRefused classfortooltip" title="'.$langs->trans('LabelsAlreadyExist').'">'.$langs->trans('GenerateBoxLabels').'</span>';
 }
 
 if ($label_count > 0) {
