@@ -43,6 +43,12 @@ if ($action == 'update') {
 	dolibarr_set_const($db, 'BOXLABEL_HEADER_SUBTITLE', GETPOST('BOXLABEL_HEADER_SUBTITLE', 'alpha'), 'chaine', 0, '', $conf->entity);
 	dolibarr_set_const($db, 'BOXLABEL_HEADER_LOGO', GETPOST('BOXLABEL_HEADER_LOGO', 'alpha'), 'chaine', 0, '', $conf->entity);
 
+	// Retention days
+	$retDays = GETPOSTINT('BOXLABEL_RETENTION_DAYS');
+	if ($retDays > 0) {
+		dolibarr_set_const($db, 'BOXLABEL_RETENTION_DAYS', $retDays, 'chaine', 0, '', $conf->entity);
+	}
+
 	setEventMessages($langs->trans('SetupSaved'), null, 'mesgs');
 	header("Location: ".$_SERVER['PHP_SELF']);
 	exit;
@@ -126,6 +132,28 @@ print '<td>';
 print ajax_constantonoff('BOXLABEL_AUTO_GENERATE');
 print '</td>';
 print '<td class="opacitymedium">'.$langs->trans('AutoGenerateLabelsDesc').'</td></tr>';
+
+// Label Archiving
+print '<tr class="liste_titre"><td colspan="3">'.$langs->trans('LabelArchiving').'</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('AutoArchiveOnShipment').'</td>';
+print '<td>';
+print ajax_constantonoff('BOXLABEL_AUTO_ARCHIVE');
+print '</td>';
+print '<td class="opacitymedium">'.$langs->trans('AutoArchiveOnShipmentDesc').'</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('RetentionDays').'</td>';
+print '<td>';
+$retentionDays = getDolGlobalInt('BOXLABEL_RETENTION_DAYS', 90);
+print '<input type="number" name="BOXLABEL_RETENTION_DAYS" value="'.$retentionDays.'" class="maxwidth75" min="1"> '.$langs->trans('days');
+print '</td>';
+print '<td class="opacitymedium">'.$langs->trans('RetentionDaysDesc').'</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('AutoDeleteAfterRetention').'</td>';
+print '<td>';
+print ajax_constantonoff('BOXLABEL_AUTO_DELETE');
+print '</td>';
+print '<td class="opacitymedium">'.$langs->trans('AutoDeleteAfterRetentionDesc').'</td></tr>';
 
 // Debug mode
 print '<tr class="liste_titre"><td colspan="3">'.$langs->trans('Other').'</td></tr>';

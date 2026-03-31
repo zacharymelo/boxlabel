@@ -35,6 +35,7 @@ class BoxLabel extends CommonObject
 	// Status constants
 	const STATUS_DRAFT = 0;
 	const STATUS_GENERATED = 1;
+	const STATUS_ARCHIVED = 2;
 
 	// Properties
 	/** @var string */
@@ -57,6 +58,8 @@ class BoxLabel extends CommonObject
 	public $product_description;
 	/** @var int|string */
 	public $date_manufactured;
+	/** @var int|string */
+	public $date_archived;
 	/** @var int */
 	public $qty_labels;
 	/** @var int */
@@ -180,7 +183,7 @@ class BoxLabel extends CommonObject
 	{
 		$sql = "SELECT t.rowid, t.ref, t.entity, t.fk_product, t.fk_mo, t.fk_product_lot";
 		$sql .= ", t.batch, t.serial_number, t.product_label, t.product_description";
-		$sql .= ", t.date_manufactured, t.qty_labels, t.status";
+		$sql .= ", t.date_manufactured, t.date_archived, t.qty_labels, t.status";
 		$sql .= ", t.note_private, t.note_public";
 		$sql .= ", t.date_creation, t.tms, t.fk_user_creat, t.fk_user_modif";
 		$sql .= ", t.import_key, t.model_pdf, t.last_main_doc";
@@ -210,6 +213,7 @@ class BoxLabel extends CommonObject
 				$this->product_label       = $obj->product_label;
 				$this->product_description = $obj->product_description;
 				$this->date_manufactured   = $this->db->jdate($obj->date_manufactured);
+				$this->date_archived       = $this->db->jdate($obj->date_archived);
 				$this->qty_labels          = $obj->qty_labels;
 				$this->status              = $obj->status;
 				$this->note_private        = $obj->note_private;
@@ -512,6 +516,9 @@ class BoxLabel extends CommonObject
 		} elseif ($status == self::STATUS_GENERATED) {
 			$statusType = 'status4';
 			$statusLabel = $langs->transnoentitiesnoconv('Generated');
+		} elseif ($status == self::STATUS_ARCHIVED) {
+			$statusType = 'status5';
+			$statusLabel = $langs->transnoentitiesnoconv('StatusArchived');
 		}
 
 		return dolGetStatus($statusLabel, $statusLabel, '', $statusType, $mode);
@@ -683,5 +690,99 @@ class BoxLabel extends CommonObject
 			return (int) $obj->nb;
 		}
 		return 0;
+	}
+
+	/**
+	 * Archive this label (mark as shipped).
+	 * Sets status to ARCHIVED and records the archive date.
+	 *
+	 * @param  User $user User performing the action
+	 * @return int         >0 if OK, <0 if KO
+	 */
+	public function archive($user)
+	{
+		if ($this->status == self::STATUS_ARCHIVED) {
+			return 0; // Already archived
+		}
+
+		$now = dol_now();
+
+		$sql = "UPDATE ".MAIN_DB_PREFIX."box_label SET";
+		$sql .= " status = ".self::STATUS_ARCHIVED;
+		$sql .= ", date_archived = '".$this->db->idate($now)."'";
+		$sql .= " WHERE rowid = ".((int) $this->id);
+
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return -1;
+		}
+
+		$this->status = self::STATUS_ARCHIVED;
+		$this->date_archived = $now;
+
+		return 1;
+	}
+
+	/**
+	 * Cleanup archived labels past the retention period.
+	 * Called by Dolibarr cron job. Deletes labels and their PDF files.
+	 *
+	 * @return int  Number of labels deleted, or -1 on error
+	 */
+	public function cleanupArchivedLabels()
+	{
+		global $conf, $user;
+
+		if (!getDolGlobalInt('BOXLABEL_AUTO_DELETE')) {
+			dol_syslog("BoxLabel::cleanupArchivedLabels — auto-delete disabled, skipping");
+			return 0;
+		}
+
+		$retentionDays = getDolGlobalInt('BOXLABEL_RETENTION_DAYS', 90);
+		if ($retentionDays <= 0) {
+			return 0;
+		}
+
+		$cutoff = dol_now() - ($retentionDays * 86400);
+
+		$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."box_label";
+		$sql .= " WHERE status = ".self::STATUS_ARCHIVED;
+		$sql .= " AND date_archived IS NOT NULL";
+		$sql .= " AND date_archived < '".$this->db->idate($cutoff)."'";
+		$sql .= " AND entity IN (".getEntity('boxlabel').")";
+
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return -1;
+		}
+
+		$deleted = 0;
+		while ($obj = $this->db->fetch_object($resql)) {
+			$label = new BoxLabel($this->db);
+			if ($label->fetch($obj->rowid) > 0) {
+				// Delete PDF file from disk
+				if (!empty($label->last_main_doc)) {
+					$filepath = $conf->boxlabel->dir_output.'/'.$label->last_main_doc;
+					if (file_exists($filepath)) {
+						dol_delete_file($filepath);
+					}
+					// Remove the directory if empty
+					$dirpath = dirname($filepath);
+					if (is_dir($dirpath) && count(scandir($dirpath)) <= 2) {
+						dol_delete_dir($dirpath);
+					}
+				}
+
+				$result = $label->delete($user, 1); // notrigger to avoid loops
+				if ($result > 0) {
+					$deleted++;
+				}
+			}
+		}
+
+		dol_syslog("BoxLabel::cleanupArchivedLabels — deleted $deleted expired labels (retention=$retentionDays days)");
+		return $deleted;
 	}
 }

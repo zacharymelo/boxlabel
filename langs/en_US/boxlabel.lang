@@ -26,6 +26,7 @@ Draft = Draft
 Generated = Generated
 StatusDraft = Draft
 StatusGenerated = Generated
+StatusArchived = Archived
 
 # Actions
 GenerateBoxLabels = Generate Box Labels
@@ -61,6 +62,16 @@ NoLogo = No Logo
 Default = default
 NumberingRule = Numbering Rule
 PDFModel = PDF Model
+LabelArchiving = Label Archiving
+AutoArchiveOnShipment = Auto-archive on shipment
+AutoArchiveOnShipmentDesc = When enabled, labels are automatically archived when their serial number ships (expedition closed)
+RetentionDays = Retention period
+RetentionDaysDesc = Number of days to keep archived labels before automatic deletion
+days = days
+AutoDeleteAfterRetention = Auto-delete after retention
+AutoDeleteAfterRetentionDesc = When enabled, archived labels are permanently deleted after the retention period expires (daily cron job)
+CleanupArchivedLabels = Cleanup archived box labels
+
 DebugMode = Debug Mode
 DebugModeDesc = When enabled, exposes a diagnostic endpoint at /custom/boxlabel/ajax/debug.php for troubleshooting
 

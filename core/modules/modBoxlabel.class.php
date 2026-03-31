@@ -37,7 +37,7 @@ class modBoxlabel extends DolibarrModules
 
 		$this->name = preg_replace('/^mod/i', '', get_class($this));
 		$this->description = "Generate and print 4x6 box labels with product, batch, and serial information after manufacturing";
-		$this->version = '1.5.1';
+		$this->version = '1.6.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'mrp';
 
@@ -84,7 +84,22 @@ class modBoxlabel extends DolibarrModules
 		$this->boxes = array();
 
 		// Cronjobs
-		$this->cronjobs = array();
+		$this->cronjobs = array(
+			0 => array(
+				'label'         => 'CleanupArchivedLabels',
+				'jobtype'       => 'method',
+				'class'         => '/boxlabel/class/boxlabel.class.php',
+				'objectname'    => 'BoxLabel',
+				'method'        => 'cleanupArchivedLabels',
+				'parameters'    => '',
+				'comment'       => 'Delete archived box labels past the retention period',
+				'frequency'     => 1,
+				'unitfrequency' => 86400,
+				'status'        => 0,
+				'test'          => 'isModEnabled("boxlabel")',
+				'priority'      => 50,
+			),
+		);
 
 		// Permissions
 		$this->rights = array();

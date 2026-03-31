@@ -93,6 +93,13 @@ class InterfaceBoxlabelTrigger extends DolibarrTriggers
 				break;
 		}
 
+		// Shipment closed — auto-archive labels for shipped serials
+		switch ($action) {
+			case 'SHIPPING_CLOSED':
+				$this->_handleShippingClosed($object, $user, $conf);
+				break;
+		}
+
 		return 0;
 	}
 
@@ -179,5 +186,87 @@ class InterfaceBoxlabelTrigger extends DolibarrTriggers
 		} else {
 			dol_syslog("BoxlabelTrigger: MRP_MO_PRODUCE — error generating labels: ".$boxlabel->error, LOG_ERR);
 		}
+	}
+
+	/**
+	 * Handle shipment closed event — auto-archive labels for shipped serials.
+	 *
+	 * @param  object $expedition The Expedition object that was closed
+	 * @param  User   $user       User performing the action
+	 * @param  Conf   $conf       Configuration
+	 * @return void
+	 */
+	private function _handleShippingClosed($expedition, $user, $conf)
+	{
+		// 1. Check auto-archive setting
+		if (!getDolGlobalInt('BOXLABEL_AUTO_ARCHIVE')) {
+			dol_syslog("BoxlabelTrigger: SHIPPING_CLOSED — auto-archive disabled, skipping");
+			return;
+		}
+
+		dol_syslog("BoxlabelTrigger: SHIPPING_CLOSED — checking shipment id=".$expedition->id." ref=".$expedition->ref);
+
+		// 2. Load shipment lines with batch details
+		if (method_exists($expedition, 'fetch_lines')) {
+			$expedition->fetch_lines();
+		}
+
+		if (empty($expedition->lines)) {
+			dol_syslog("BoxlabelTrigger: SHIPPING_CLOSED — no lines found on shipment");
+			return;
+		}
+
+		dol_include_once('/boxlabel/class/boxlabel.class.php');
+		$archived = 0;
+
+		// 3. For each line, check batch details for serials
+		foreach ($expedition->lines as $line) {
+			$batches = array();
+
+			// detail_batch may be populated by fetch_lines
+			if (!empty($line->detail_batch)) {
+				foreach ($line->detail_batch as $batchDetail) {
+					if (!empty($batchDetail->batch)) {
+						$batches[] = $batchDetail->batch;
+					}
+				}
+			}
+
+			// Also check via direct query if detail_batch is empty
+			if (empty($batches) && !empty($line->line_id)) {
+				$sql_batch = "SELECT batch FROM ".MAIN_DB_PREFIX."expeditiondet_batch";
+				$sql_batch .= " WHERE fk_expeditiondet = ".((int) $line->line_id);
+				$sql_batch .= " AND batch IS NOT NULL AND batch != ''";
+				$res_batch = $this->db->query($sql_batch);
+				if ($res_batch) {
+					while ($obj_batch = $this->db->fetch_object($res_batch)) {
+						$batches[] = $obj_batch->batch;
+					}
+				}
+			}
+
+			// 4. Archive matching labels
+			foreach ($batches as $serial) {
+				$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."box_label";
+				$sql .= " WHERE serial_number = '".$this->db->escape($serial)."'";
+				$sql .= " AND status = ".BoxLabel::STATUS_GENERATED;
+				$sql .= " AND entity IN (".getEntity('boxlabel').")";
+
+				$resql = $this->db->query($sql);
+				if ($resql) {
+					while ($obj = $this->db->fetch_object($resql)) {
+						$label = new BoxLabel($this->db);
+						if ($label->fetch($obj->rowid) > 0) {
+							$result = $label->archive($user);
+							if ($result > 0) {
+								$archived++;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		dol_syslog("BoxlabelTrigger: SHIPPING_CLOSED — archived $archived label(s) for shipment ".$expedition->ref);
 	}
 }
