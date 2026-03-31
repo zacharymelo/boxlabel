@@ -37,7 +37,7 @@ class modBoxlabel extends DolibarrModules
 
 		$this->name = preg_replace('/^mod/i', '', get_class($this));
 		$this->description = "Generate and print 4x6 box labels with product, batch, and serial information after manufacturing";
-		$this->version = '1.4.0';
+		$this->version = '1.4.1';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'mrp';
 
@@ -74,7 +74,7 @@ class modBoxlabel extends DolibarrModules
 
 		// Tabs on native object cards
 		$this->tabs = array();
-		$this->tabs[] = array('data' => 'mo@mrp:+boxlabel:BoxLabels:boxlabel@boxlabel:$user->hasRight(\'boxlabel\', \'boxlabel\', \'read\'):/boxlabel/mo_boxlabel.php?fk_mo=__ID__');
+		$this->tabs[] = array('data' => 'mo@mrp:+boxlabel:BoxLabels,mrp,/boxlabel/class/boxlabel.class.php,countForMo:boxlabel@boxlabel:$user->hasRight(\'boxlabel\', \'boxlabel\', \'read\'):/boxlabel/mo_boxlabel.php?fk_mo=__ID__');
 		$this->tabs[] = array('data' => 'product:+boxlabel_template:LabelTemplate:boxlabel@boxlabel:$user->hasRight(\'boxlabel\', \'boxlabel\', \'read\'):/boxlabel/product_template.php?id=__ID__');
 
 		// Dictionaries
