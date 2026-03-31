@@ -159,6 +159,71 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 	}
 
 	/**
+	 * Generate a combined multi-page PDF with one label per page.
+	 *
+	 * @param  BoxLabel[] $labels      Array of BoxLabel objects to include
+	 * @param  Translate  $outputlangs Language object
+	 * @param  string     $mo_ref      MO reference for filename
+	 * @return string                  Filepath of generated PDF, or empty on error
+	 */
+	public function write_file_multi($labels, $outputlangs, $mo_ref)
+	{
+		global $conf, $mysoc;
+
+		if (empty($labels)) {
+			return '';
+		}
+
+		if (!is_object($outputlangs)) {
+			$outputlangs = new Translate('', $conf);
+		}
+		$outputlangs->setDefaultLang($outputlangs->defaultlang);
+		$outputlangs->loadLangs(array('boxlabel@boxlabel', 'products'));
+
+		// Output directory — store under MO ref subdirectory
+		$dir = $conf->boxlabel->dir_output;
+		if (!empty($conf->boxlabel->multidir_output[$conf->entity])) {
+			$dir = $conf->boxlabel->multidir_output[$conf->entity];
+		}
+
+		$safeRef = dol_sanitizeFileName($mo_ref);
+		$dir .= '/'.$safeRef;
+
+		if (!file_exists($dir)) {
+			dol_mkdir($dir);
+		}
+
+		$filename = $safeRef.'_all_labels.pdf';
+		$filepath = $dir.'/'.$filename;
+
+		// Create single PDF instance
+		$format = array($this->page_largeur, $this->page_hauteur);
+		$pdf = pdf_getInstance($format);
+
+		if (class_exists('TCPDF')) {
+			$pdf->setPrintHeader(false);
+			$pdf->setPrintFooter(false);
+		}
+
+		$pdf->SetAutoPageBreak(false, 0);
+		$pdf->SetCreator('Dolibarr '.DOL_VERSION);
+		$pdf->SetAuthor($outputlangs->convToOutputCharset($mysoc->name));
+		$pdf->SetTitle($outputlangs->convToOutputCharset($mo_ref.' - All Labels'));
+		$pdf->SetSubject('Box Labels');
+		$pdf->SetMargins($this->marge_gauche, $this->marge_haute, $this->marge_droite);
+
+		// Add one page per label
+		foreach ($labels as $label) {
+			$this->_generateLabelPage($pdf, $label, $outputlangs);
+		}
+
+		$pdf->Output($filepath, 'F');
+		dolChmod($filepath);
+
+		return $filepath;
+	}
+
+	/**
 	 * Generate a single label page with adaptive layout.
 	 * Calculates available space and scales fonts/sizes to prevent overlap.
 	 *

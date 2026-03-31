@@ -33,6 +33,7 @@ GenerateBoxLabelsFromMO = Generate labels from this Manufacturing Order
 GeneratePDF = Generate PDF
 RegeneratePDF = Regenerate PDF
 RegenerateAllPDFs = Regenerate All PDFs
+PrintAllLabels = Print All Labels
 DownloadPDF = Download PDF
 ConfirmGenerateLabels = This will generate box labels for all produced items with batch/serial numbers from this Manufacturing Order. Continue?
 BoxLabelCreatedFromMO = %s box label(s) created from Manufacturing Order %s

@@ -130,6 +130,51 @@ if ($action == 'builddoc_all' && $permread) {
 	exit;
 }
 
+// Print all labels — generate combined multi-page PDF and redirect to download
+if ($action == 'printall' && $permread) {
+	$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."box_label";
+	$sql .= " WHERE fk_mo = ".((int) $mo->id);
+	$sql .= " AND entity IN (".getEntity('boxlabel').")";
+	$sql .= " ORDER BY rowid";
+
+	$labels = array();
+	$resql = $db->query($sql);
+	if ($resql) {
+		while ($obj = $db->fetch_object($resql)) {
+			$label = new BoxLabel($db);
+			if ($label->fetch($obj->rowid) > 0) {
+				$labels[] = $label;
+			}
+		}
+	}
+
+	if (!empty($labels)) {
+		$modelname = getDolGlobalString('BOXLABEL_ADDON_PDF', 'pdf_boxlabel_standard');
+		$modelfile = DOL_DOCUMENT_ROOT.'/custom/boxlabel/core/modules/boxlabel/doc/'.$modelname.'.modules.php';
+		require_once $modelfile;
+		$pdfmodel = new $modelname($db);
+
+		$filepath = $pdfmodel->write_file_multi($labels, $langs, $mo->ref);
+
+		if (!empty($filepath) && file_exists($filepath)) {
+			// Stream the file directly to the browser for printing
+			header('Content-Type: application/pdf');
+			header('Content-Disposition: inline; filename="'.basename($filepath).'"');
+			header('Content-Length: '.filesize($filepath));
+			header('Cache-Control: private, max-age=0, must-revalidate');
+			readfile($filepath);
+			exit;
+		} else {
+			setEventMessages('Failed to generate combined PDF', null, 'errors');
+		}
+	} else {
+		setEventMessages($langs->trans('NoLabelsForThisMO'), null, 'warnings');
+	}
+
+	header("Location: ".$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id);
+	exit;
+}
+
 
 /*
  * VIEW
@@ -190,6 +235,9 @@ if ($permwrite && $has_produced > 0) {
 }
 
 if ($label_count > 0) {
+	// Print all labels — combined multi-page PDF for immediate printing
+	print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id.'&action=printall&token='.newToken().'" target="_blank">'.$langs->trans('PrintAllLabels').' ('.$label_count.')</a>';
+
 	// Regenerate all PDFs for existing labels
 	print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id.'&action=builddoc_all&token='.newToken().'">'.$langs->trans('RegenerateAllPDFs').' ('.$label_count.')</a>';
 }
