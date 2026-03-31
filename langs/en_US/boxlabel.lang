@@ -49,6 +49,16 @@ Permission500013a = Delete box labels
 
 # Admin
 BoxLabelSetup = Box Label Setup
+LabelHeaderSettings = Label Header Appearance
+LabelHeaderTitle = Header Title
+LabelHeaderTitleDesc = Company or brand name displayed on the label. Defaults to your company name if empty.
+LabelHeaderSubtitle = Header Subtitle
+LabelHeaderSubtitleDesc = Location, tagline, or other text displayed below the title. Leave empty to hide.
+LabelHeaderLogo = Logo
+LabelHeaderLogoDesc = Logo image displayed on the label. Select from uploaded company logos.
+CompanyLogo = Company Logo
+NoLogo = No Logo
+Default = default
 NumberingRule = Numbering Rule
 PDFModel = PDF Model
 DebugMode = Debug Mode

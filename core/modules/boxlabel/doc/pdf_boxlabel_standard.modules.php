@@ -422,15 +422,26 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 		$curY = $T;
 
 		// ================================================================
-		// ZONE 1: HEADER — Logo + Company Name
+		// ZONE 1: HEADER — Logo + Title + Subtitle (configurable via admin)
 		// ================================================================
-		$headerH = 20;
+		$headerTitle = getDolGlobalString('BOXLABEL_HEADER_TITLE', $mysoc->name);
+		$headerSubtitle = getDolGlobalString('BOXLABEL_HEADER_SUBTITLE', '');
+		$headerLogoSetting = getDolGlobalString('BOXLABEL_HEADER_LOGO', '');
 
-		$logo = $mysoc->logo;
+		$headerH = !empty($headerSubtitle) ? 20 : 16;
+
+		// Determine logo file
 		$logoEndX = $L;
-		if (!empty($logo)) {
-			$logoFile = $conf->mycompany->dir_output.'/logos/'.$logo;
-			if (file_exists($logoFile)) {
+		if ($headerLogoSetting !== 'none') {
+			$logoFile = '';
+			if (!empty($headerLogoSetting)) {
+				// Specific logo file selected in admin
+				$logoFile = $conf->mycompany->dir_output.'/logos/'.$headerLogoSetting;
+			} elseif (!empty($mysoc->logo)) {
+				// Default: company logo
+				$logoFile = $conf->mycompany->dir_output.'/logos/'.$mysoc->logo;
+			}
+			if (!empty($logoFile) && file_exists($logoFile)) {
 				$pdf->Image($logoFile, $L + 2, $curY + 2, 0, $headerH - 4);
 				$logoEndX = $L + 20;
 			}
@@ -438,17 +449,20 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 
 		$textAreaW = $usable - ($logoEndX - $L) - 4;
 
-		// Company name — large, fills the row
+		// Title — configurable
 		$pdf->SetFont('helvetica', 'B', 14);
 		$pdf->SetTextColor($valueClr[0], $valueClr[1], $valueClr[2]);
-		$pdf->SetXY($logoEndX + 2, $curY + 3);
-		$pdf->Cell($textAreaW, 6, 'Digital Properties Group Inc.', 0, 0, 'L');
+		$titleY = !empty($headerSubtitle) ? $curY + 3 : $curY + 4;
+		$pdf->SetXY($logoEndX + 2, $titleY);
+		$pdf->Cell($textAreaW, 6, $outputlangs->convToOutputCharset($headerTitle), 0, 0, 'L');
 
-		// Location — below company name
-		$pdf->SetFont('helvetica', '', 10);
-		$pdf->SetTextColor($labelClr[0], $labelClr[1], $labelClr[2]);
-		$pdf->SetXY($logoEndX + 2, $curY + 10);
-		$pdf->Cell($textAreaW, 4, 'Smithville, Ontario, Canada', 0, 0, 'L');
+		// Subtitle — configurable (only if set)
+		if (!empty($headerSubtitle)) {
+			$pdf->SetFont('helvetica', '', 10);
+			$pdf->SetTextColor($labelClr[0], $labelClr[1], $labelClr[2]);
+			$pdf->SetXY($logoEndX + 2, $curY + 10);
+			$pdf->Cell($textAreaW, 4, $outputlangs->convToOutputCharset($headerSubtitle), 0, 0, 'L');
+		}
 
 		$curY += $headerH;
 		$pdf->SetDrawColor($borderClr[0], $borderClr[1], $borderClr[2]);

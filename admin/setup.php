@@ -38,6 +38,11 @@ if ($action == 'update') {
 		dolibarr_set_const($db, 'BOXLABEL_ADDON_PDF', $addon_pdf, 'chaine', 0, '', $conf->entity);
 	}
 
+	// Label header settings
+	dolibarr_set_const($db, 'BOXLABEL_HEADER_TITLE', GETPOST('BOXLABEL_HEADER_TITLE', 'alpha'), 'chaine', 0, '', $conf->entity);
+	dolibarr_set_const($db, 'BOXLABEL_HEADER_SUBTITLE', GETPOST('BOXLABEL_HEADER_SUBTITLE', 'alpha'), 'chaine', 0, '', $conf->entity);
+	dolibarr_set_const($db, 'BOXLABEL_HEADER_LOGO', GETPOST('BOXLABEL_HEADER_LOGO', 'alpha'), 'chaine', 0, '', $conf->entity);
+
 	setEventMessages($langs->trans('SetupSaved'), null, 'mesgs');
 	header("Location: ".$_SERVER['PHP_SELF']);
 	exit;
@@ -57,6 +62,44 @@ print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="update">';
 
 print '<table class="noborder centpercent">';
+
+// Label Header Appearance
+print '<tr class="liste_titre"><td colspan="3">'.$langs->trans('LabelHeaderSettings').'</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('LabelHeaderTitle').'</td>';
+print '<td>';
+$headerTitle = getDolGlobalString('BOXLABEL_HEADER_TITLE', $mysoc->name);
+print '<input type="text" name="BOXLABEL_HEADER_TITLE" value="'.dol_escape_htmltag($headerTitle).'" class="maxwidth400">';
+print '</td>';
+print '<td class="opacitymedium">'.$langs->trans('LabelHeaderTitleDesc').'</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('LabelHeaderSubtitle').'</td>';
+print '<td>';
+$headerSubtitle = getDolGlobalString('BOXLABEL_HEADER_SUBTITLE', '');
+print '<input type="text" name="BOXLABEL_HEADER_SUBTITLE" value="'.dol_escape_htmltag($headerSubtitle).'" class="maxwidth400">';
+print '</td>';
+print '<td class="opacitymedium">'.$langs->trans('LabelHeaderSubtitleDesc').'</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('LabelHeaderLogo').'</td>';
+print '<td>';
+$headerLogo = getDolGlobalString('BOXLABEL_HEADER_LOGO', '');
+print '<select name="BOXLABEL_HEADER_LOGO" class="maxwidth300">';
+print '<option value="">'.$langs->trans('CompanyLogo').' ('.$langs->trans('Default').')</option>';
+print '<option value="none"'.($headerLogo === 'none' ? ' selected' : '').'>'.$langs->trans('NoLogo').'</option>';
+// List available logos from mycompany dir
+$logoDir = $conf->mycompany->dir_output.'/logos';
+if (is_dir($logoDir)) {
+	$logoFiles = scandir($logoDir);
+	foreach ($logoFiles as $lf) {
+		if (preg_match('/\.(png|jpg|jpeg|gif|svg)$/i', $lf)) {
+			$selected = ($headerLogo === $lf) ? ' selected' : '';
+			print '<option value="'.dol_escape_htmltag($lf).'"'.$selected.'>'.dol_escape_htmltag($lf).'</option>';
+		}
+	}
+}
+print '</select>';
+print '</td>';
+print '<td class="opacitymedium">'.$langs->trans('LabelHeaderLogoDesc').'</td></tr>';
 
 // Numbering rule
 print '<tr class="liste_titre"><td colspan="3">'.$langs->trans('NumberingRule').'</td></tr>';
