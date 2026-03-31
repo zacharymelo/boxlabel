@@ -39,9 +39,9 @@ if ($action == 'update') {
 	}
 
 	// Label header settings
-	dolibarr_set_const($db, 'BOXLABEL_HEADER_TITLE', GETPOST('BOXLABEL_HEADER_TITLE', 'alpha'), 'chaine', 0, '', $conf->entity);
-	dolibarr_set_const($db, 'BOXLABEL_HEADER_SUBTITLE', GETPOST('BOXLABEL_HEADER_SUBTITLE', 'alpha'), 'chaine', 0, '', $conf->entity);
-	dolibarr_set_const($db, 'BOXLABEL_HEADER_LOGO', GETPOST('BOXLABEL_HEADER_LOGO', 'alpha'), 'chaine', 0, '', $conf->entity);
+	dolibarr_set_const($db, 'BOXLABEL_HEADER_TITLE', GETPOST('BOXLABEL_HEADER_TITLE', 'nohtml'), 'chaine', 0, '', $conf->entity);
+	dolibarr_set_const($db, 'BOXLABEL_HEADER_SUBTITLE', GETPOST('BOXLABEL_HEADER_SUBTITLE', 'nohtml'), 'chaine', 0, '', $conf->entity);
+	dolibarr_set_const($db, 'BOXLABEL_HEADER_LOGO', GETPOST('BOXLABEL_HEADER_LOGO', 'nohtml'), 'chaine', 0, '', $conf->entity);
 
 	// Retention days
 	$retDays = GETPOSTINT('BOXLABEL_RETENTION_DAYS');
