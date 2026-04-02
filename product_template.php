@@ -113,6 +113,8 @@ if ($action == 'save_template' && $permwrite) {
 	$db->query($sql_del);
 
 	$now = dol_now();
+
+	// Try with free_text_default column first, fall back without it if column doesn't exist yet
 	$sql_ins = "INSERT INTO ".MAIN_DB_PREFIX."boxlabel_product_template";
 	$sql_ins .= " (fk_product, entity, enabled_fields, free_text_default, date_creation, fk_user_creat)";
 	$sql_ins .= " VALUES (";
@@ -123,7 +125,21 @@ if ($action == 'save_template' && $permwrite) {
 	$sql_ins .= ", '".$db->idate($now)."'";
 	$sql_ins .= ", ".((int) $user->id);
 	$sql_ins .= ")";
-	$db->query($sql_ins);
+
+	$resql_ins = $db->query($sql_ins);
+	if (!$resql_ins) {
+		// Column may not exist yet — retry without free_text_default
+		$sql_ins2 = "INSERT INTO ".MAIN_DB_PREFIX."boxlabel_product_template";
+		$sql_ins2 .= " (fk_product, entity, enabled_fields, date_creation, fk_user_creat)";
+		$sql_ins2 .= " VALUES (";
+		$sql_ins2 .= ((int) $product->id);
+		$sql_ins2 .= ", ".((int) $conf->entity);
+		$sql_ins2 .= ", '".$db->escape($enabledStr)."'";
+		$sql_ins2 .= ", '".$db->idate($now)."'";
+		$sql_ins2 .= ", ".((int) $user->id);
+		$sql_ins2 .= ")";
+		$db->query($sql_ins2);
+	}
 
 	setEventMessages($langs->trans('LabelTemplateSaved'), null, 'mesgs');
 	header("Location: ".$_SERVER['PHP_SELF'].'?id='.$product->id);
@@ -134,7 +150,7 @@ if ($action == 'save_template' && $permwrite) {
 if ($action == 'copy_template' && $permwrite) {
 	$source_product_id = GETPOSTINT('source_product_id');
 	if ($source_product_id > 0 && $source_product_id != $product->id) {
-		$sqlSrc = "SELECT enabled_fields, free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+		$sqlSrc = "SELECT enabled_fields FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
 		$sqlSrc .= " WHERE fk_product = ".((int) $source_product_id);
 		$sqlSrc .= " AND entity = ".((int) $conf->entity);
 		$sqlSrc .= " LIMIT 1";
@@ -149,12 +165,11 @@ if ($action == 'copy_template' && $permwrite) {
 			// Insert copy
 			$now = dol_now();
 			$sql_ins = "INSERT INTO ".MAIN_DB_PREFIX."boxlabel_product_template";
-			$sql_ins .= " (fk_product, entity, enabled_fields, free_text_default, date_creation, fk_user_creat)";
+			$sql_ins .= " (fk_product, entity, enabled_fields, date_creation, fk_user_creat)";
 			$sql_ins .= " VALUES (";
 			$sql_ins .= ((int) $product->id);
 			$sql_ins .= ", ".((int) $conf->entity);
 			$sql_ins .= ", '".$db->escape($objSrc->enabled_fields)."'";
-			$sql_ins .= ", ".(empty($objSrc->free_text_default) ? "NULL" : "'".$db->escape($objSrc->free_text_default)."'");
 			$sql_ins .= ", '".$db->idate($now)."'";
 			$sql_ins .= ", ".((int) $user->id);
 			$sql_ins .= ")";
@@ -198,7 +213,7 @@ $inherited = false;
 $parentRef = '';
 
 // Check this product's own template
-$sql = "SELECT enabled_fields, free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+$sql = "SELECT enabled_fields FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
 $sql .= " WHERE fk_product = ".((int) $product->id);
 $sql .= " AND entity = ".((int) $conf->entity);
 $sql .= " LIMIT 1";
@@ -206,7 +221,7 @@ $sql .= " LIMIT 1";
 $resql = $db->query($sql);
 if ($resql && ($obj = $db->fetch_object($resql))) {
 	$enabledFields = array_filter(array_map('trim', explode(',', $obj->enabled_fields)));
-	$currentFreeText = $obj->free_text_default;
+	$currentFreeText = isset($obj->free_text_default) ? $obj->free_text_default : '';
 }
 
 // If no template on this product, check parent (variant inheritance)
@@ -219,14 +234,14 @@ if ($enabledFields === null) {
 	$sqlParent .= " LIMIT 1";
 	$resParent = $db->query($sqlParent);
 	if ($resParent && ($objParent = $db->fetch_object($resParent))) {
-		$sqlTpl2 = "SELECT enabled_fields, free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+		$sqlTpl2 = "SELECT enabled_fields FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
 		$sqlTpl2 .= " WHERE fk_product = ".((int) $objParent->fk_product_parent);
 		$sqlTpl2 .= " AND entity = ".((int) $conf->entity);
 		$sqlTpl2 .= " LIMIT 1";
 		$resTpl2 = $db->query($sqlTpl2);
 		if ($resTpl2 && ($objTpl2 = $db->fetch_object($resTpl2))) {
 			$enabledFields = array_filter(array_map('trim', explode(',', $objTpl2->enabled_fields)));
-			$currentFreeText = $objTpl2->free_text_default;
+			$currentFreeText = isset($objTpl2->free_text_default) ? $objTpl2->free_text_default : '';
 			$inherited = true;
 			$parentRef = $objParent->parent_ref;
 		}
