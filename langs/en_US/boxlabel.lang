@@ -13,17 +13,17 @@ BoxLabelList = Label List
 NewBoxLabel = New Box Label
 
 # Fields
-SerialNumber = Serial Number
-Batch = Batch
+BoxLabelSerialNumber = Serial Number
+BoxLabelBatch = Batch
 ManufacturingDate = Manufacturing Date
 LabelQuantity = Number of Copies
 ProductLabel = Product Name
 ManufacturingOrder = Manufacturing Order
-Lot = Lot/Serial
+BoxLabelLot = Lot/Serial
 
 # Status
-Draft = Draft
-Generated = Generated
+BoxLabelDraft = Draft
+BoxLabelGenerated = Generated
 StatusDraft = Draft
 StatusGenerated = Generated
 StatusArchived = Archived
@@ -59,7 +59,7 @@ LabelHeaderLogo = Logo
 LabelHeaderLogoDesc = Logo image displayed on the label. Select from uploaded company logos.
 CompanyLogo = Company Logo
 NoLogo = No Logo
-Default = default
+BoxLabelDefault = default
 NumberingRule = Numbering Rule
 PDFModel = PDF Model
 LabelArchiving = Label Archiving
@@ -67,7 +67,7 @@ AutoArchiveOnShipment = Auto-archive on shipment
 AutoArchiveOnShipmentDesc = When enabled, labels are automatically archived when their serial number ships (expedition closed)
 RetentionDays = Retention period
 RetentionDaysDesc = Number of days to keep archived labels before automatic deletion
-days = days
+BoxLabelDays = days
 AutoDeleteAfterRetention = Auto-delete after retention
 AutoDeleteAfterRetentionDesc = When enabled, archived labels are permanently deleted after the retention period expires (daily cron job)
 CleanupArchivedLabels = Cleanup archived box labels
@@ -85,7 +85,7 @@ SelectSerial = Select Serial/Batch
 SelectMO = Select Manufacturing Order
 NoSerialsFound = No serials in stock for this MO
 NoMOsFound = No Manufacturing Orders found
-Loading = Loading
+BoxLabelLoading = Loading
 
 # Auto-generation
 AutoGenerateLabels = Auto-generate labels on MO production
@@ -121,13 +121,20 @@ FieldNetMeasureDesc = Net measure/weight from the product card
 FieldBarcode = Barcode
 FieldBarcodeDesc = Product barcode value from the product card
 ExtraField = Product extra field
-Field = Field
-Enabled = Enabled
-Empty = empty
+BoxLabelField = Field
+BoxLabelEnabled = Enabled
+BoxLabelEmpty = empty
 CopyTemplateFrom = Copy Template From Another Product
 CopyTemplateFromDesc = Select a product to copy its label template configuration to this product
 LabelTemplateCopied = Label template copied successfully
 LabelTemplateNotFound = No label template found on the selected product
+
+# Free Text
+FreeText = Free Text
+FreeTextDefault = Default Free Text
+FreeTextDefaultDesc = Default text that will appear on all labels for this product. Can be overridden per label or per MO batch.
+FreeTextOverride = Free Text (optional override)
+FreeTextOverrideDesc = Leave empty to use the product default. Text entered here will apply to all labels in this batch.
 
 # Linked objects
 LinkToBoxLabel = Link to Box Label

@@ -8,12 +8,13 @@
  */
 
 // Allow text with commas and special characters in header settings
+// NOSCANPOSTFORINJECTION excludes specific POST fields from Dolibarr WAF (waf.inc.php)
 define('NOSCANPOSTFORINJECTION', array('BOXLABEL_HEADER_TITLE', 'BOXLABEL_HEADER_SUBTITLE'));
 
 $res = 0;
-if (!$res && file_exists("../../main.inc.php"))     { $res = @include "../../main.inc.php"; }
-if (!$res && file_exists("../../../main.inc.php"))   { $res = @include "../../../main.inc.php"; }
-if (!$res && file_exists("../../../../main.inc.php")){ $res = @include "../../../../main.inc.php"; }
+if (!$res && file_exists("../../main.inc.php")) { $res = @include "../../main.inc.php"; }
+if (!$res && file_exists("../../../main.inc.php")) { $res = @include "../../../main.inc.php"; }
+if (!$res && file_exists("../../../../main.inc.php")) { $res = @include "../../../../main.inc.php"; }
 if (!$res) { die("Include of main fails"); }
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 dol_include_once('/boxlabel/lib/boxlabel.lib.php');
@@ -93,7 +94,7 @@ print '<tr class="oddeven"><td>'.$langs->trans('LabelHeaderLogo').'</td>';
 print '<td>';
 $headerLogo = getDolGlobalString('BOXLABEL_HEADER_LOGO', '');
 print '<select name="BOXLABEL_HEADER_LOGO" class="maxwidth300">';
-print '<option value="">'.$langs->trans('CompanyLogo').' ('.$langs->trans('Default').')</option>';
+print '<option value="">'.$langs->trans('CompanyLogo').' ('.$langs->trans('BoxLabelDefault').')</option>';
 print '<option value="none"'.($headerLogo === 'none' ? ' selected' : '').'>'.$langs->trans('NoLogo').'</option>';
 // List available logos from mycompany dir
 $logoDir = $conf->mycompany->dir_output.'/logos';
@@ -148,7 +149,7 @@ print '<td class="opacitymedium">'.$langs->trans('AutoArchiveOnShipmentDesc').'<
 print '<tr class="oddeven"><td>'.$langs->trans('RetentionDays').'</td>';
 print '<td>';
 $retentionDays = getDolGlobalInt('BOXLABEL_RETENTION_DAYS', 90);
-print '<input type="number" name="BOXLABEL_RETENTION_DAYS" value="'.$retentionDays.'" class="maxwidth75" min="1"> '.$langs->trans('days');
+print '<input type="number" name="BOXLABEL_RETENTION_DAYS" value="'.$retentionDays.'" class="maxwidth75" min="1"> '.$langs->trans('BoxLabelDays');
 print '</td>';
 print '<td class="opacitymedium">'.$langs->trans('RetentionDaysDesc').'</td></tr>';
 

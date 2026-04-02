@@ -8,8 +8,8 @@
  */
 
 $res = 0;
-if (!$res && file_exists("../main.inc.php"))       { $res = @include "../main.inc.php"; }
-if (!$res && file_exists("../../main.inc.php"))    { $res = @include "../../main.inc.php"; }
+if (!$res && file_exists("../main.inc.php")) { $res = @include "../main.inc.php"; }
+if (!$res && file_exists("../../main.inc.php")) { $res = @include "../../main.inc.php"; }
 if (!$res && file_exists("../../../main.inc.php")) { $res = @include "../../../main.inc.php"; }
 if (!$res) { die("Include of main fails"); }
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
@@ -77,6 +77,7 @@ if ($action == 'add' && $permwrite) {
 	$object->serial_number       = GETPOST('serial_number', 'alpha');
 	$object->product_label       = GETPOST('product_label', 'alpha');
 	$object->product_description = GETPOST('product_description', 'restricthtml');
+	$object->free_text           = GETPOST('free_text', 'restricthtml');
 	$object->date_manufactured   = dol_mktime(0, 0, 0, GETPOSTINT('date_manufacturedmonth'), GETPOSTINT('date_manufacturedday'), GETPOSTINT('date_manufacturedyear'));
 	$object->qty_labels          = 1;
 	$object->note_private        = GETPOST('note_private', 'restricthtml');
@@ -93,6 +94,18 @@ if ($action == 'add' && $permwrite) {
 			if (empty($object->product_description)) {
 				$object->product_description = $prod->description;
 			}
+		}
+	}
+
+	// Auto-fill free text from product template if not provided
+	if (empty($object->free_text) && $object->fk_product > 0) {
+		$sql_ft = "SELECT free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+		$sql_ft .= " WHERE fk_product = ".((int) $object->fk_product);
+		$sql_ft .= " AND entity = ".((int) $conf->entity);
+		$sql_ft .= " LIMIT 1";
+		$res_ft = $db->query($sql_ft);
+		if ($res_ft && ($obj_ft = $db->fetch_object($res_ft)) && !empty($obj_ft->free_text_default)) {
+			$object->free_text = $obj_ft->free_text_default;
 		}
 	}
 
@@ -128,6 +141,7 @@ if ($action == 'update' && $permwrite) {
 	$object->serial_number       = GETPOST('serial_number', 'alpha');
 	$object->product_label       = GETPOST('product_label', 'alpha');
 	$object->product_description = GETPOST('product_description', 'restricthtml');
+	$object->free_text           = GETPOST('free_text', 'restricthtml');
 	$object->date_manufactured   = dol_mktime(0, 0, 0, GETPOSTINT('date_manufacturedmonth'), GETPOSTINT('date_manufacturedday'), GETPOSTINT('date_manufacturedyear'));
 
 	$ret = $extrafields->setOptionalsFromPost(null, $object);
@@ -217,14 +231,14 @@ if ($action == 'create') {
 	print '</td></tr>';
 
 	// Serial/Batch — cascading from MO (or product if no MO selected)
-	print '<tr><td>'.$langs->trans('SerialNumber').'</td><td>';
+	print '<tr><td>'.$langs->trans('BoxLabelSerialNumber').'</td><td>';
 	print '<select name="serial_number" id="serial_number" class="maxwidth400">';
 	print '<option value="">'.dol_escape_htmltag($langs->trans('SelectMOFirst')).'</option>';
 	print '</select>';
 	print '</td></tr>';
 
 	// Batch — auto-filled from serial, read-only
-	print '<tr><td>'.$langs->trans('Batch').'</td><td>';
+	print '<tr><td>'.$langs->trans('BoxLabelBatch').'</td><td>';
 	print '<input type="text" name="batch" id="batch" class="maxwidth300" value="" readonly>';
 	print '</td></tr>';
 
@@ -236,6 +250,11 @@ if ($action == 'create') {
 	// Product Description — auto-filled, read-only
 	print '<tr><td>'.$langs->trans('Description').'</td><td>';
 	print '<textarea name="product_description" id="product_description" class="quatrevingtpercent" rows="3" readonly></textarea>';
+	print '</td></tr>';
+
+	// Free Text — editable, defaults from product template
+	print '<tr><td>'.$langs->trans('FreeText').'</td><td>';
+	print '<textarea name="free_text" id="free_text" class="quatrevingtpercent" rows="3">'.dol_escape_htmltag(GETPOST('free_text', 'restricthtml'), 0, 1).'</textarea>';
 	print '</td></tr>';
 
 	// Manufacturing Date — auto-filled from serial, but user can override
@@ -259,14 +278,13 @@ if ($action == 'create') {
 
 	// Cascade JavaScript for create mode — preserve selections on error re-render
 	print "\n".'<script>'."\n";
-	print _boxlabel_cascade_js(
+	print boxlabelCascadeJs(
 		GETPOSTINT('fk_product'),
 		dol_escape_js(GETPOST('serial_number', 'alpha')),
 		'',
 		GETPOSTINT('fk_mo')
 	);
 	print '</script>'."\n";
-
 } elseif ($object->id > 0) {
 	// View / Edit mode
 
@@ -316,14 +334,14 @@ if ($action == 'create') {
 		print '</td></tr>';
 
 		// Serial/Batch — cascading from MO
-		print '<tr><td>'.$langs->trans('SerialNumber').'</td><td>';
+		print '<tr><td>'.$langs->trans('BoxLabelSerialNumber').'</td><td>';
 		print '<select name="serial_number" id="serial_number" class="maxwidth400">';
 		print '<option value="">'.dol_escape_htmltag($langs->trans('SelectMOFirst')).'</option>';
 		print '</select>';
 		print '</td></tr>';
 
 		// Batch — auto-filled
-		print '<tr><td>'.$langs->trans('Batch').'</td><td>';
+		print '<tr><td>'.$langs->trans('BoxLabelBatch').'</td><td>';
 		print '<input type="text" name="batch" id="batch" class="maxwidth300" value="'.dol_escape_htmltag($object->batch).'" readonly>';
 		print '</td></tr>';
 
@@ -335,6 +353,11 @@ if ($action == 'create') {
 		// Product Description
 		print '<tr><td>'.$langs->trans('Description').'</td><td>';
 		print '<textarea name="product_description" id="product_description" class="quatrevingtpercent" rows="3" readonly>'.dol_escape_htmltag($object->product_description, 0, 1).'</textarea>';
+		print '</td></tr>';
+
+		// Free Text
+		print '<tr><td>'.$langs->trans('FreeText').'</td><td>';
+		print '<textarea name="free_text" id="free_text" class="quatrevingtpercent" rows="3">'.dol_escape_htmltag($object->free_text, 0, 1).'</textarea>';
 		print '</td></tr>';
 
 		// Manufacturing Date
@@ -358,14 +381,13 @@ if ($action == 'create') {
 
 		// Cascade JavaScript for edit mode — pre-select current values
 		print "\n".'<script>'."\n";
-		print _boxlabel_cascade_js(
+		print boxlabelCascadeJs(
 			(int) $object->fk_product,
 			dol_escape_js($object->serial_number),
 			'',
 			(int) $object->fk_mo
 		);
 		print '</script>'."\n";
-
 	} else {
 		// View mode
 		print '<table class="border centpercent tableforfield">';
@@ -382,10 +404,10 @@ if ($action == 'create') {
 		print '</td></tr>';
 
 		// Serial Number
-		print '<tr><td>'.$langs->trans('SerialNumber').'</td><td>'.dol_escape_htmltag($object->serial_number).'</td></tr>';
+		print '<tr><td>'.$langs->trans('BoxLabelSerialNumber').'</td><td>'.dol_escape_htmltag($object->serial_number).'</td></tr>';
 
 		// Batch
-		print '<tr><td>'.$langs->trans('Batch').'</td><td>'.dol_escape_htmltag($object->batch).'</td></tr>';
+		print '<tr><td>'.$langs->trans('BoxLabelBatch').'</td><td>'.dol_escape_htmltag($object->batch).'</td></tr>';
 
 		// MO
 		print '<tr><td>'.$langs->trans('ManufacturingOrder').'</td><td>';
@@ -403,6 +425,11 @@ if ($action == 'create') {
 
 		// Product Description
 		print '<tr><td>'.$langs->trans('Description').'</td><td>'.dol_string_onlythesehtmltags(dol_htmlentitiesbr($object->product_description)).'</td></tr>';
+
+		// Free Text
+		if (!empty($object->free_text)) {
+			print '<tr><td>'.$langs->trans('FreeText').'</td><td>'.dol_string_onlythesehtmltags(dol_htmlentitiesbr($object->free_text)).'</td></tr>';
+		}
 
 		// Manufacturing Date
 		print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>'.dol_print_date($object->date_manufactured, 'day').'</td></tr>';
@@ -477,7 +504,7 @@ $db->close();
  * @param  int    $preMo       Pre-selected MO ID (edit mode)
  * @return string              JavaScript code (without <script> tags)
  */
-function _boxlabel_cascade_js($preProduct = 0, $preSerial = '', $preBatch = '', $preMo = 0)
+function boxlabelCascadeJs($preProduct = 0, $preSerial = '', $preBatch = '', $preMo = 0)
 {
 	global $langs;
 
@@ -488,7 +515,7 @@ function _boxlabel_cascade_js($preProduct = 0, $preSerial = '', $preBatch = '', 
 	$strNoSerials    = dol_escape_js($langs->trans('NoSerialsFound'));
 	$strSelectMO     = dol_escape_js($langs->trans('SelectMO'));
 	$strNoMOs        = dol_escape_js($langs->trans('NoMOsFound'));
-	$strLoading      = dol_escape_js($langs->trans('Loading'));
+	$strLoading      = dol_escape_js($langs->trans('BoxLabelLoading'));
 
 	$js = <<<JSEOF
 (function(){

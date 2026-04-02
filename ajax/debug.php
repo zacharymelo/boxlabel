@@ -20,9 +20,9 @@
  */
 
 $res = 0;
-if (!$res && file_exists("../../main.inc.php"))     { $res = @include "../../main.inc.php"; }
-if (!$res && file_exists("../../../main.inc.php"))   { $res = @include "../../../main.inc.php"; }
-if (!$res && file_exists("../../../../main.inc.php")){ $res = @include "../../../../main.inc.php"; }
+if (!$res && file_exists("../../main.inc.php")) { $res = @include "../../main.inc.php"; }
+if (!$res && file_exists("../../../main.inc.php")) { $res = @include "../../../main.inc.php"; }
+if (!$res && file_exists("../../../../main.inc.php")) { $res = @include "../../../../main.inc.php"; }
 if (!$res) { http_response_code(500); exit; }
 
 if (!$user->admin) { http_response_code(403); print 'Admin only'; exit; }
@@ -148,10 +148,7 @@ if ($mode === 'object' || $run_all) {
 // SETTINGS
 if ($mode === 'settings' || $run_all) {
 	print "--- BOXLABEL SETTINGS ---\n";
-	$sql = "SELECT name, value FROM ".MAIN_DB_PREFIX."const"
-		." WHERE name LIKE 'BOXLABEL%'"
-		." AND entity IN (0, ".((int) $conf->entity).")"
-		." ORDER BY name";
+	$sql = "SELECT name, value FROM ".MAIN_DB_PREFIX."const WHERE name LIKE 'BOXLABEL%' AND entity IN (0, ".((int) $conf->entity).") ORDER BY name";
 	$resql = $db->query($sql);
 	if ($resql) {
 		while ($row = $db->fetch_object($resql)) {

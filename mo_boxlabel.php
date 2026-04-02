@@ -8,8 +8,8 @@
  */
 
 $res = 0;
-if (!$res && file_exists("../main.inc.php"))       { $res = @include "../main.inc.php"; }
-if (!$res && file_exists("../../main.inc.php"))    { $res = @include "../../main.inc.php"; }
+if (!$res && file_exists("../main.inc.php")) { $res = @include "../main.inc.php"; }
+if (!$res && file_exists("../../main.inc.php")) { $res = @include "../../main.inc.php"; }
 if (!$res && file_exists("../../../main.inc.php")) { $res = @include "../../../main.inc.php"; }
 if (!$res) { die("Include of main fails"); }
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
@@ -49,8 +49,9 @@ if ($mo_id > 0) {
  */
 
 if ($action == 'generate' && $permwrite && GETPOST('confirm', 'alpha') == 'yes') {
+	$free_text_override = GETPOST('free_text_override', 'restricthtml');
 	$boxlabel = new BoxLabel($db);
-	$count = $boxlabel->generateFromMo($mo->id, $user);
+	$count = $boxlabel->generateFromMo($mo->id, $user, $free_text_override);
 
 	if ($count > 0) {
 		// Auto-generate PDFs for all newly created labels
@@ -197,14 +198,22 @@ dol_banner_tab($mo, 'fk_mo', $linkback, 1, 'rowid', 'ref');
 print '<div class="fichecenter">';
 print '<div class="underbanner clearboth"></div>';
 
-// Confirmation dialog for label generation
+// Confirmation dialog for label generation — includes optional free text override
 if ($action == 'generate') {
+	$formquestion = array(
+		array(
+			'type' => 'other',
+			'name' => 'free_text_override',
+			'label' => $langs->trans('FreeTextOverride'),
+			'value' => '<textarea name="free_text_override" rows="3" class="quatrevingtpercent" placeholder="'.$langs->trans('FreeTextOverrideDesc').'"></textarea>',
+		),
+	);
 	print $form->formconfirm(
 		$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id,
 		$langs->trans('GenerateBoxLabels'),
 		$langs->trans('ConfirmGenerateLabels'),
 		'generate',
-		'',
+		$formquestion,
 		0,
 		1
 	);
@@ -286,8 +295,8 @@ if ($resql) {
 	print '<tr class="liste_titre">';
 	print '<td>'.$langs->trans('Ref').'</td>';
 	print '<td>'.$langs->trans('ProductLabel').'</td>';
-	print '<td>'.$langs->trans('Batch').'</td>';
-	print '<td>'.$langs->trans('SerialNumber').'</td>';
+	print '<td>'.$langs->trans('BoxLabelBatch').'</td>';
+	print '<td>'.$langs->trans('BoxLabelSerialNumber').'</td>';
 	print '<td class="center">'.$langs->trans('ManufacturingDate').'</td>';
 	print '<td class="center">'.$langs->trans('Status').'</td>';
 	print '<td class="center">'.$langs->trans('Actions').'</td>';

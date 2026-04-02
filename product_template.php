@@ -8,8 +8,8 @@
  */
 
 $res = 0;
-if (!$res && file_exists("../main.inc.php"))       { $res = @include "../main.inc.php"; }
-if (!$res && file_exists("../../main.inc.php"))    { $res = @include "../../main.inc.php"; }
+if (!$res && file_exists("../main.inc.php")) { $res = @include "../main.inc.php"; }
+if (!$res && file_exists("../../main.inc.php")) { $res = @include "../../main.inc.php"; }
 if (!$res && file_exists("../../../main.inc.php")) { $res = @include "../../../main.inc.php"; }
 if (!$res) { die("Include of main fails"); }
 
@@ -68,8 +68,7 @@ if (count($dimParts) > 0) {
 // Country value
 if (!empty($product->country_id) && $product->country_id > 0) {
 	$countryLabel = getCountry($product->country_id, 'all', $db);
-	if (is_object($countryLabel)) { $countryLabel = $countryLabel->label; }
-	elseif (is_array($countryLabel)) { $countryLabel = isset($countryLabel['label']) ? $countryLabel['label'] : ''; }
+	if (is_object($countryLabel)) { $countryLabel = $countryLabel->label; } elseif (is_array($countryLabel)) { $countryLabel = isset($countryLabel['label']) ? $countryLabel['label'] : ''; }
 	$availableFields['country']['value'] = $countryLabel;
 }
 
@@ -105,6 +104,7 @@ if ($action == 'save_template' && $permwrite) {
 	}
 
 	$enabledStr = implode(',', $checked);
+	$free_text_default = GETPOST('free_text_default', 'restricthtml');
 
 	// Atomic: delete then insert
 	$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
@@ -114,11 +114,12 @@ if ($action == 'save_template' && $permwrite) {
 
 	$now = dol_now();
 	$sql_ins = "INSERT INTO ".MAIN_DB_PREFIX."boxlabel_product_template";
-	$sql_ins .= " (fk_product, entity, enabled_fields, date_creation, fk_user_creat)";
+	$sql_ins .= " (fk_product, entity, enabled_fields, free_text_default, date_creation, fk_user_creat)";
 	$sql_ins .= " VALUES (";
 	$sql_ins .= ((int) $product->id);
 	$sql_ins .= ", ".((int) $conf->entity);
 	$sql_ins .= ", '".$db->escape($enabledStr)."'";
+	$sql_ins .= ", ".(empty($free_text_default) ? "NULL" : "'".$db->escape($free_text_default)."'");
 	$sql_ins .= ", '".$db->idate($now)."'";
 	$sql_ins .= ", ".((int) $user->id);
 	$sql_ins .= ")";
@@ -133,7 +134,7 @@ if ($action == 'save_template' && $permwrite) {
 if ($action == 'copy_template' && $permwrite) {
 	$source_product_id = GETPOSTINT('source_product_id');
 	if ($source_product_id > 0 && $source_product_id != $product->id) {
-		$sqlSrc = "SELECT enabled_fields FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+		$sqlSrc = "SELECT enabled_fields, free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
 		$sqlSrc .= " WHERE fk_product = ".((int) $source_product_id);
 		$sqlSrc .= " AND entity = ".((int) $conf->entity);
 		$sqlSrc .= " LIMIT 1";
@@ -148,11 +149,12 @@ if ($action == 'copy_template' && $permwrite) {
 			// Insert copy
 			$now = dol_now();
 			$sql_ins = "INSERT INTO ".MAIN_DB_PREFIX."boxlabel_product_template";
-			$sql_ins .= " (fk_product, entity, enabled_fields, date_creation, fk_user_creat)";
+			$sql_ins .= " (fk_product, entity, enabled_fields, free_text_default, date_creation, fk_user_creat)";
 			$sql_ins .= " VALUES (";
 			$sql_ins .= ((int) $product->id);
 			$sql_ins .= ", ".((int) $conf->entity);
 			$sql_ins .= ", '".$db->escape($objSrc->enabled_fields)."'";
+			$sql_ins .= ", ".(empty($objSrc->free_text_default) ? "NULL" : "'".$db->escape($objSrc->free_text_default)."'");
 			$sql_ins .= ", '".$db->idate($now)."'";
 			$sql_ins .= ", ".((int) $user->id);
 			$sql_ins .= ")";
@@ -191,11 +193,12 @@ print '<div class="underbanner clearboth"></div>';
 
 // Load current template — with parent inheritance for variants
 $enabledFields = null; // null = no template
+$currentFreeText = '';
 $inherited = false;
 $parentRef = '';
 
 // Check this product's own template
-$sql = "SELECT enabled_fields FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+$sql = "SELECT enabled_fields, free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
 $sql .= " WHERE fk_product = ".((int) $product->id);
 $sql .= " AND entity = ".((int) $conf->entity);
 $sql .= " LIMIT 1";
@@ -203,6 +206,7 @@ $sql .= " LIMIT 1";
 $resql = $db->query($sql);
 if ($resql && ($obj = $db->fetch_object($resql))) {
 	$enabledFields = array_filter(array_map('trim', explode(',', $obj->enabled_fields)));
+	$currentFreeText = $obj->free_text_default;
 }
 
 // If no template on this product, check parent (variant inheritance)
@@ -215,13 +219,14 @@ if ($enabledFields === null) {
 	$sqlParent .= " LIMIT 1";
 	$resParent = $db->query($sqlParent);
 	if ($resParent && ($objParent = $db->fetch_object($resParent))) {
-		$sqlTpl2 = "SELECT enabled_fields FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
+		$sqlTpl2 = "SELECT enabled_fields, free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
 		$sqlTpl2 .= " WHERE fk_product = ".((int) $objParent->fk_product_parent);
 		$sqlTpl2 .= " AND entity = ".((int) $conf->entity);
 		$sqlTpl2 .= " LIMIT 1";
 		$resTpl2 = $db->query($sqlTpl2);
 		if ($resTpl2 && ($objTpl2 = $db->fetch_object($resTpl2))) {
 			$enabledFields = array_filter(array_map('trim', explode(',', $objTpl2->enabled_fields)));
+			$currentFreeText = $objTpl2->free_text_default;
 			$inherited = true;
 			$parentRef = $objParent->parent_ref;
 		}
@@ -253,15 +258,15 @@ print '<table class="noborder centpercent">';
 
 // Header
 print '<tr class="liste_titre">';
-print '<td class="center" style="width: 40px;">'.$langs->trans('Enabled').'</td>';
-print '<td>'.$langs->trans('Field').'</td>';
+print '<td class="center" style="width: 40px;">'.$langs->trans('BoxLabelEnabled').'</td>';
+print '<td>'.$langs->trans('BoxLabelField').'</td>';
 print '<td>'.$langs->trans('Description').'</td>';
 print '</tr>';
 
 // Always-on fields (greyed out, informational)
 print '<tr class="oddeven">';
 print '<td class="center"><input type="checkbox" checked disabled></td>';
-print '<td><strong>'.$langs->trans('Batch').' / '.$langs->trans('SerialNumber').'</strong></td>';
+print '<td><strong>'.$langs->trans('BoxLabelBatch').' / '.$langs->trans('BoxLabelSerialNumber').'</strong></td>';
 print '<td class="opacitymedium">'.$langs->trans('LabelTemplateAlwaysShown').'</td>';
 print '</tr>';
 
@@ -274,7 +279,7 @@ print '</tr>';
 // Configurable fields — show current value if populated
 foreach ($availableFields as $key => $info) {
 	$checked = in_array($key, $enabledFields) ? ' checked' : '';
-	$currentVal = !empty($info['value']) ? ' <span class="badge badge-status4">'.dol_escape_htmltag($info['value']).'</span>' : ' <span class="badge badge-status0">'.$langs->trans('Empty').'</span>';
+	$currentVal = !empty($info['value']) ? ' <span class="badge badge-status4">'.dol_escape_htmltag($info['value']).'</span>' : ' <span class="badge badge-status0">'.$langs->trans('BoxLabelEmpty').'</span>';
 	print '<tr class="oddeven">';
 	print '<td class="center"><input type="checkbox" name="fields[]" value="'.dol_escape_htmltag($key).'"'.$checked.'></td>';
 	print '<td><strong>'.$langs->trans($info['label']).'</strong>'.$currentVal.'</td>';
@@ -282,6 +287,16 @@ foreach ($availableFields as $key => $info) {
 	print '</tr>';
 }
 
+print '</table>';
+
+// Free text default
+print '<br>';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('FreeTextDefault').'</td></tr>';
+print '<tr class="oddeven">';
+print '<td>'.$langs->trans('FreeTextDefaultDesc').'</td>';
+print '<td><textarea name="free_text_default" class="quatrevingtpercent" rows="3">'.dol_escape_htmltag($currentFreeText, 0, 1).'</textarea></td>';
+print '</tr>';
 print '</table>';
 
 if ($permwrite) {

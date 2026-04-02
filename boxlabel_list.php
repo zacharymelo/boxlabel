@@ -8,8 +8,8 @@
  */
 
 $res = 0;
-if (!$res && file_exists("../main.inc.php"))       { $res = @include "../main.inc.php"; }
-if (!$res && file_exists("../../main.inc.php"))    { $res = @include "../../main.inc.php"; }
+if (!$res && file_exists("../main.inc.php")) { $res = @include "../main.inc.php"; }
+if (!$res && file_exists("../../main.inc.php")) { $res = @include "../../main.inc.php"; }
 if (!$res && file_exists("../../../main.inc.php")) { $res = @include "../../../main.inc.php"; }
 if (!$res) { die("Include of main fails"); }
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
@@ -111,11 +111,11 @@ if (!$resql) {
 $num = $db->num_rows($resql);
 
 $param = '';
-if (!empty($search_ref))     { $param .= '&search_ref='.urlencode($search_ref); }
-if (!empty($search_batch))   { $param .= '&search_batch='.urlencode($search_batch); }
-if (!empty($search_serial))  { $param .= '&search_serial='.urlencode($search_serial); }
+if (!empty($search_ref)) { $param .= '&search_ref='.urlencode($search_ref); }
+if (!empty($search_batch)) { $param .= '&search_batch='.urlencode($search_batch); }
+if (!empty($search_serial)) { $param .= '&search_serial='.urlencode($search_serial); }
 if (!empty($search_product)) { $param .= '&search_product='.urlencode($search_product); }
-if ($search_status !== '')   { $param .= '&search_status='.urlencode($search_status); }
+if ($search_status !== '') { $param .= '&search_status='.urlencode($search_status); }
 
 $newcardbutton = '';
 if ($user->hasRight('boxlabel', 'boxlabel', 'write')) {
@@ -138,8 +138,8 @@ print '<tr class="liste_titre">';
 print_liste_field_titre('Ref', $_SERVER['PHP_SELF'], 't.ref', '', $param, '', $sortfield, $sortorder);
 print_liste_field_titre('Product', $_SERVER['PHP_SELF'], 'p.ref', '', $param, '', $sortfield, $sortorder);
 print_liste_field_titre('ProductLabel', $_SERVER['PHP_SELF'], 't.product_label', '', $param, '', $sortfield, $sortorder);
-print_liste_field_titre('Batch', $_SERVER['PHP_SELF'], 't.batch', '', $param, '', $sortfield, $sortorder);
-print_liste_field_titre('SerialNumber', $_SERVER['PHP_SELF'], 't.serial_number', '', $param, '', $sortfield, $sortorder);
+print_liste_field_titre('BoxLabelBatch', $_SERVER['PHP_SELF'], 't.batch', '', $param, '', $sortfield, $sortorder);
+print_liste_field_titre('BoxLabelSerialNumber', $_SERVER['PHP_SELF'], 't.serial_number', '', $param, '', $sortfield, $sortorder);
 print_liste_field_titre('ManufacturingDate', $_SERVER['PHP_SELF'], 't.date_manufactured', '', $param, '', $sortfield, $sortorder, 'center ');
 print_liste_field_titre('Status', $_SERVER['PHP_SELF'], 't.status', '', $param, '', $sortfield, $sortorder, 'center ');
 print '</tr>';
@@ -153,7 +153,7 @@ print '<td class="liste_titre"><input type="text" name="search_batch" class="max
 print '<td class="liste_titre"><input type="text" name="search_serial" class="maxwidth100" value="'.dol_escape_htmltag($search_serial).'"></td>';
 print '<td class="liste_titre"></td>';
 print '<td class="liste_titre center">';
-print $form->selectarray('search_status', array('0' => $langs->trans('Draft'), '1' => $langs->trans('Generated')), $search_status, 1, 0, 0, '', 0, 0, 0, '', 'maxwidth100');
+print $form->selectarray('search_status', array('0' => $langs->trans('BoxLabelDraft'), '1' => $langs->trans('BoxLabelGenerated')), $search_status, 1, 0, 0, '', 0, 0, 0, '', 'maxwidth100');
 print '</td>';
 print '<td class="liste_titre center">';
 print '<input type="image" class="liste_titre" name="button_search" src="'.img_picto($langs->trans("Search"), 'search.png', '', '', 1).'" value="'.dol_escape_htmltag($langs->trans("Search")).'" title="'.dol_escape_htmltag($langs->trans("Search")).'">';

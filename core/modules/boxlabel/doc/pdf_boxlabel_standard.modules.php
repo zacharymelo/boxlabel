@@ -230,6 +230,7 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 	 * @param TCPDF     $pdf         PDF instance
 	 * @param BoxLabel  $object      BoxLabel object
 	 * @param Translate $outputlangs Language object
+	 * @return void
 	 */
 	private function _generateLabelPage(&$pdf, $object, $outputlangs)
 	{
@@ -357,7 +358,7 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 		}
 
 		// Helper: field is enabled if no template (show all) or field is in template list
-		$fieldOn = function($key) use ($tplFields) {
+		$fieldOn = function ($key) use ($tplFields) {
 			return ($tplFields === null || in_array($key, $tplFields));
 		};
 
@@ -404,8 +405,9 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 		// ================================================================
 		// ADAPTIVE SIZING — scale everything based on content density
 		// ================================================================
-		// Fixed zones: header(16) + barcode(20) + padding(~12)
-		$fixedH = 48;
+		// Fixed zones: header(16) + barcode(20) + padding(~12) + free text if present
+		$freeTextReserve = (!empty($object->free_text)) ? 10 : 0;
+		$fixedH = 48 + $freeTextReserve;
 		$availableH = $H - $T - $B - $fixedH;
 
 		// Budget: product name/desc ~15mm, product barcode ~20mm, serial barcode ~22mm (bottom-pinned)
@@ -497,6 +499,26 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 		}
 
 		$curY += 1;
+
+		// ================================================================
+		// ZONE 2.5: FREE TEXT — Optional configurable text block
+		// ================================================================
+		if (!empty($object->free_text)) {
+			$freeText = dol_string_nohtmltag($object->free_text, 1);
+			$freeText = $outputlangs->convToOutputCharset($freeText);
+
+			// Separator line above free text
+			$pdf->SetDrawColor($borderClr[0], $borderClr[1], $borderClr[2]);
+			$pdf->SetLineWidth(0.2);
+			$pdf->Line($L + 10, $curY, $L + $usable - 10, $curY);
+			$curY += 2;
+
+			$pdf->SetFont('helvetica', 'I', $descFont);
+			$pdf->SetTextColor($valueClr[0], $valueClr[1], $valueClr[2]);
+			$pdf->SetXY($L + 2, $curY);
+			$pdf->MultiCell($usable - 4, 3, $freeText, 0, 'C');
+			$curY = $pdf->GetY() + 1;
+		}
 
 		// ================================================================
 		// ZONE 3: PRODUCT BARCODE — Code 128 encoding product barcode value
@@ -656,6 +678,7 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 	 * @param array  $bgClr        RGB for background fill
 	 * @param int    $labelFontSz  Label font size (default 6)
 	 * @param int    $valueFontSz  Base value font size (default 10, auto-shrinks for long text)
+	 * @return void
 	 */
 	private function _drawDataCell(&$pdf, $x, $y, $w, $h, $label, $value, $labelClr, $valueClr, $bgClr, $labelFontSz = 6, $valueFontSz = 10)
 	{
