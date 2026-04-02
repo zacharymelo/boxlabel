@@ -49,9 +49,8 @@ if ($mo_id > 0) {
  */
 
 if ($action == 'generate' && $permwrite && GETPOST('confirm', 'alpha') == 'yes') {
-	$free_text_override = GETPOST('free_text_override', 'restricthtml');
 	$boxlabel = new BoxLabel($db);
-	$count = $boxlabel->generateFromMo($mo->id, $user, $free_text_override);
+	$count = $boxlabel->generateFromMo($mo->id, $user);
 
 	if ($count > 0) {
 		// Auto-generate PDFs for all newly created labels
@@ -198,22 +197,14 @@ dol_banner_tab($mo, 'fk_mo', $linkback, 1, 'rowid', 'ref');
 print '<div class="fichecenter">';
 print '<div class="underbanner clearboth"></div>';
 
-// Confirmation dialog for label generation — includes optional free text override
+// Confirmation dialog for label generation
 if ($action == 'generate') {
-	$formquestion = array(
-		array(
-			'type' => 'other',
-			'name' => 'free_text_override',
-			'label' => $langs->trans('FreeTextOverride'),
-			'value' => '<textarea name="free_text_override" rows="3" class="quatrevingtpercent" placeholder="'.$langs->trans('FreeTextOverrideDesc').'"></textarea>',
-		),
-	);
 	print $form->formconfirm(
 		$_SERVER['PHP_SELF'].'?fk_mo='.$mo->id,
 		$langs->trans('GenerateBoxLabels'),
 		$langs->trans('ConfirmGenerateLabels'),
 		'generate',
-		$formquestion,
+		'',
 		0,
 		1
 	);

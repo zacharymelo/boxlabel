@@ -405,9 +405,8 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 		// ================================================================
 		// ADAPTIVE SIZING — scale everything based on content density
 		// ================================================================
-		// Fixed zones: header(16) + barcode(20) + padding(~12) + free text if present
-		$freeTextReserve = (!empty($object->free_text)) ? 10 : 0;
-		$fixedH = 48 + $freeTextReserve;
+		// Fixed zones: header(16) + barcode(20) + padding(~12)
+		$fixedH = 48;
 		$availableH = $H - $T - $B - $fixedH;
 
 		// Budget: product name/desc ~15mm, product barcode ~20mm, serial barcode ~22mm (bottom-pinned)
@@ -499,26 +498,6 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 		}
 
 		$curY += 1;
-
-		// ================================================================
-		// ZONE 2.5: FREE TEXT — Optional configurable text block
-		// ================================================================
-		if (!empty($object->free_text)) {
-			$freeText = dol_string_nohtmltag($object->free_text, 1);
-			$freeText = $outputlangs->convToOutputCharset($freeText);
-
-			// Separator line above free text
-			$pdf->SetDrawColor($borderClr[0], $borderClr[1], $borderClr[2]);
-			$pdf->SetLineWidth(0.2);
-			$pdf->Line($L + 10, $curY, $L + $usable - 10, $curY);
-			$curY += 2;
-
-			$pdf->SetFont('helvetica', 'I', $descFont);
-			$pdf->SetTextColor($valueClr[0], $valueClr[1], $valueClr[2]);
-			$pdf->SetXY($L + 2, $curY);
-			$pdf->MultiCell($usable - 4, 3, $freeText, 0, 'C');
-			$curY = $pdf->GetY() + 1;
-		}
 
 		// ================================================================
 		// ZONE 3: PRODUCT BARCODE — Code 128 encoding product barcode value

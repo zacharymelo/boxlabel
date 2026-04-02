@@ -56,8 +56,6 @@ class BoxLabel extends CommonObject
 	public $product_label;
 	/** @var string */
 	public $product_description;
-	/** @var string */
-	public $free_text;
 	/** @var int|string */
 	public $date_manufactured;
 	/** @var int|string */
@@ -114,7 +112,7 @@ class BoxLabel extends CommonObject
 
 		$sql = "INSERT INTO ".MAIN_DB_PREFIX."box_label (";
 		$sql .= "ref, entity, fk_product, fk_mo, fk_product_lot";
-		$sql .= ", batch, serial_number, product_label, product_description, free_text";
+		$sql .= ", batch, serial_number, product_label, product_description";
 		$sql .= ", date_manufactured, qty_labels, status";
 		$sql .= ", note_private, note_public";
 		$sql .= ", date_creation, fk_user_creat";
@@ -128,7 +126,6 @@ class BoxLabel extends CommonObject
 		$sql .= ", ".(empty($this->serial_number) ? "NULL" : "'".$this->db->escape($this->serial_number)."'");
 		$sql .= ", ".(empty($this->product_label) ? "NULL" : "'".$this->db->escape($this->product_label)."'");
 		$sql .= ", ".(empty($this->product_description) ? "NULL" : "'".$this->db->escape($this->product_description)."'");
-		$sql .= ", ".(empty($this->free_text) ? "NULL" : "'".$this->db->escape($this->free_text)."'");
 		$sql .= ", ".(empty($this->date_manufactured) ? "NULL" : "'".$this->db->idate($this->date_manufactured)."'");
 		$sql .= ", ".((int) ($this->qty_labels > 0 ? $this->qty_labels : 1));
 		$sql .= ", ".((int) $this->status);
@@ -185,7 +182,7 @@ class BoxLabel extends CommonObject
 	public function fetch($id, $ref = '')
 	{
 		$sql = "SELECT t.rowid, t.ref, t.entity, t.fk_product, t.fk_mo, t.fk_product_lot";
-		$sql .= ", t.batch, t.serial_number, t.product_label, t.product_description, t.free_text";
+		$sql .= ", t.batch, t.serial_number, t.product_label, t.product_description";
 		$sql .= ", t.date_manufactured, t.date_archived, t.qty_labels, t.status";
 		$sql .= ", t.note_private, t.note_public";
 		$sql .= ", t.date_creation, t.tms, t.fk_user_creat, t.fk_user_modif";
@@ -215,7 +212,6 @@ class BoxLabel extends CommonObject
 				$this->serial_number       = $obj->serial_number;
 				$this->product_label       = $obj->product_label;
 				$this->product_description = $obj->product_description;
-				$this->free_text           = $obj->free_text;
 				$this->date_manufactured   = $this->db->jdate($obj->date_manufactured);
 				$this->date_archived       = $this->db->jdate($obj->date_archived);
 				$this->qty_labels          = $obj->qty_labels;
@@ -262,7 +258,6 @@ class BoxLabel extends CommonObject
 		$sql .= ", serial_number = ".(empty($this->serial_number) ? "NULL" : "'".$this->db->escape($this->serial_number)."'");
 		$sql .= ", product_label = ".(empty($this->product_label) ? "NULL" : "'".$this->db->escape($this->product_label)."'");
 		$sql .= ", product_description = ".(empty($this->product_description) ? "NULL" : "'".$this->db->escape($this->product_description)."'");
-		$sql .= ", free_text = ".(empty($this->free_text) ? "NULL" : "'".$this->db->escape($this->free_text)."'");
 		$sql .= ", date_manufactured = ".(empty($this->date_manufactured) ? "NULL" : "'".$this->db->idate($this->date_manufactured)."'");
 		$sql .= ", qty_labels = ".((int) ($this->qty_labels > 0 ? $this->qty_labels : 1));
 		$sql .= ", status = ".((int) $this->status);
@@ -570,12 +565,11 @@ class BoxLabel extends CommonObject
 	 * Queries produced lines from llx_mrp_production, creates BoxLabel records
 	 * for each unique batch/serial, and generates PDF for each.
 	 *
-	 * @param  int    $mo_id              Manufacturing Order ID
-	 * @param  User   $user               User performing the action
-	 * @param  string $free_text_override  Optional free text override for all labels in this batch
-	 * @return int                         Number of labels created, or <0 on error
+	 * @param  int  $mo_id  Manufacturing Order ID
+	 * @param  User $user   User performing the action
+	 * @return int           Number of labels created, or <0 on error
 	 */
-	public function generateFromMo($mo_id, $user, $free_text_override = '')
+	public function generateFromMo($mo_id, $user)
 	{
 		global $conf, $langs;
 
@@ -655,34 +649,6 @@ class BoxLabel extends CommonObject
 				}
 			}
 
-			// Resolve free text: override → product template default → parent template default
-			$label_free_text = '';
-			if (!empty($free_text_override)) {
-				$label_free_text = $free_text_override;
-			} else {
-				// Check product template default (with parent inheritance)
-				$sql_ft = "SELECT free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
-				$sql_ft .= " WHERE fk_product = ".((int) $prod_id);
-				$sql_ft .= " AND entity = ".((int) $conf->entity);
-				$sql_ft .= " LIMIT 1";
-				$res_ft = $this->db->query($sql_ft);
-				if ($res_ft && ($obj_ft = $this->db->fetch_object($res_ft)) && !empty($obj_ft->free_text_default)) {
-					$label_free_text = $obj_ft->free_text_default;
-				} else {
-					// Check parent product template
-					$sql_parent = "SELECT pt.free_text_default FROM ".MAIN_DB_PREFIX."boxlabel_product_template as pt";
-					$sql_parent .= " JOIN ".MAIN_DB_PREFIX."product_attribute_combination as pac ON pac.fk_product_parent = pt.fk_product";
-					$sql_parent .= " WHERE pac.fk_product_child = ".((int) $prod_id);
-					$sql_parent .= " AND pac.entity IN (".getEntity('product').")";
-					$sql_parent .= " AND pt.entity = ".((int) $conf->entity);
-					$sql_parent .= " LIMIT 1";
-					$res_parent = $this->db->query($sql_parent);
-					if ($res_parent && ($obj_parent = $this->db->fetch_object($res_parent)) && !empty($obj_parent->free_text_default)) {
-						$label_free_text = $obj_parent->free_text_default;
-					}
-				}
-			}
-
 			// Create the BoxLabel record
 			$label = new BoxLabel($this->db);
 			$label->fk_product = $prod_id;
@@ -692,7 +658,6 @@ class BoxLabel extends CommonObject
 			$label->serial_number = $obj->batch;
 			$label->product_label = $prod_label;
 			$label->product_description = $prod_desc;
-			$label->free_text = $label_free_text;
 			$label->date_manufactured = $mfg_date ? $mfg_date : dol_now();
 			$label->qty_labels = 1;
 

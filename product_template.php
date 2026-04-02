@@ -104,7 +104,6 @@ if ($action == 'save_template' && $permwrite) {
 	}
 
 	$enabledStr = implode(',', $checked);
-	$free_text_default = GETPOST('free_text_default', 'restricthtml');
 
 	// Atomic: delete then insert
 	$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."boxlabel_product_template";
@@ -113,33 +112,16 @@ if ($action == 'save_template' && $permwrite) {
 	$db->query($sql_del);
 
 	$now = dol_now();
-
-	// Try with free_text_default column first, fall back without it if column doesn't exist yet
 	$sql_ins = "INSERT INTO ".MAIN_DB_PREFIX."boxlabel_product_template";
-	$sql_ins .= " (fk_product, entity, enabled_fields, free_text_default, date_creation, fk_user_creat)";
+	$sql_ins .= " (fk_product, entity, enabled_fields, date_creation, fk_user_creat)";
 	$sql_ins .= " VALUES (";
 	$sql_ins .= ((int) $product->id);
 	$sql_ins .= ", ".((int) $conf->entity);
 	$sql_ins .= ", '".$db->escape($enabledStr)."'";
-	$sql_ins .= ", ".(empty($free_text_default) ? "NULL" : "'".$db->escape($free_text_default)."'");
 	$sql_ins .= ", '".$db->idate($now)."'";
 	$sql_ins .= ", ".((int) $user->id);
 	$sql_ins .= ")";
-
-	$resql_ins = $db->query($sql_ins);
-	if (!$resql_ins) {
-		// Column may not exist yet — retry without free_text_default
-		$sql_ins2 = "INSERT INTO ".MAIN_DB_PREFIX."boxlabel_product_template";
-		$sql_ins2 .= " (fk_product, entity, enabled_fields, date_creation, fk_user_creat)";
-		$sql_ins2 .= " VALUES (";
-		$sql_ins2 .= ((int) $product->id);
-		$sql_ins2 .= ", ".((int) $conf->entity);
-		$sql_ins2 .= ", '".$db->escape($enabledStr)."'";
-		$sql_ins2 .= ", '".$db->idate($now)."'";
-		$sql_ins2 .= ", ".((int) $user->id);
-		$sql_ins2 .= ")";
-		$db->query($sql_ins2);
-	}
+	$db->query($sql_ins);
 
 	setEventMessages($langs->trans('LabelTemplateSaved'), null, 'mesgs');
 	header("Location: ".$_SERVER['PHP_SELF'].'?id='.$product->id);
@@ -208,7 +190,6 @@ print '<div class="underbanner clearboth"></div>';
 
 // Load current template — with parent inheritance for variants
 $enabledFields = null; // null = no template
-$currentFreeText = '';
 $inherited = false;
 $parentRef = '';
 
@@ -221,7 +202,6 @@ $sql .= " LIMIT 1";
 $resql = $db->query($sql);
 if ($resql && ($obj = $db->fetch_object($resql))) {
 	$enabledFields = array_filter(array_map('trim', explode(',', $obj->enabled_fields)));
-	$currentFreeText = isset($obj->free_text_default) ? $obj->free_text_default : '';
 }
 
 // If no template on this product, check parent (variant inheritance)
@@ -241,7 +221,6 @@ if ($enabledFields === null) {
 		$resTpl2 = $db->query($sqlTpl2);
 		if ($resTpl2 && ($objTpl2 = $db->fetch_object($resTpl2))) {
 			$enabledFields = array_filter(array_map('trim', explode(',', $objTpl2->enabled_fields)));
-			$currentFreeText = isset($objTpl2->free_text_default) ? $objTpl2->free_text_default : '';
 			$inherited = true;
 			$parentRef = $objParent->parent_ref;
 		}
@@ -302,16 +281,6 @@ foreach ($availableFields as $key => $info) {
 	print '</tr>';
 }
 
-print '</table>';
-
-// Free text default
-print '<br>';
-print '<table class="noborder centpercent">';
-print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('FreeTextDefault').'</td></tr>';
-print '<tr class="oddeven">';
-print '<td>'.$langs->trans('FreeTextDefaultDesc').'</td>';
-print '<td><textarea name="free_text_default" class="quatrevingtpercent" rows="3">'.dol_escape_htmltag($currentFreeText, 0, 1).'</textarea></td>';
-print '</tr>';
 print '</table>';
 
 if ($permwrite) {

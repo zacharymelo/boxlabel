@@ -129,12 +129,5 @@ CopyTemplateFromDesc = Select a product to copy its label template configuration
 LabelTemplateCopied = Label template copied successfully
 LabelTemplateNotFound = No label template found on the selected product
 
-# Free Text
-FreeText = Free Text
-FreeTextDefault = Default Free Text
-FreeTextDefaultDesc = Default text that will appear on all labels for this product. Can be overridden per label or per MO batch.
-FreeTextOverride = Free Text (optional override)
-FreeTextOverrideDesc = Leave empty to use the product default. Text entered here will apply to all labels in this batch.
-
 # Linked objects
 LinkToBoxLabel = Link to Box Label
