@@ -129,5 +129,8 @@ CopyTemplateFromDesc = Select a product to copy its label template configuration
 LabelTemplateCopied = Label template copied successfully
 LabelTemplateNotFound = No label template found on the selected product
 
+# Notes
+BoxLabelNotePublicHelp = Optional note printed on the label (e.g. special handling instructions)
+
 # Linked objects
 LinkToBoxLabel = Link to Box Label

@@ -37,7 +37,7 @@ class modBoxlabel extends DolibarrModules
 
 		$this->name = preg_replace('/^mod/i', '', get_class($this));
 		$this->description = "Generate and print 4x6 box labels with product, batch, and serial information after manufacturing";
-		$this->version = '1.7.1';
+		$this->version = '1.8.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'mrp';
 

@@ -497,6 +497,21 @@ class pdf_boxlabel_standard extends ModelePDFBoxLabel
 			$curY = $pdf->GetY();
 		}
 
+		// Public note — optional free-text printed below description
+		if (!empty($object->note_public)) {
+			$note = dol_string_nohtmltag($object->note_public, 1);
+			$note = $outputlangs->convToOutputCharset($note);
+			$maxNoteLen = 200;
+			if (dol_strlen($note) > $maxNoteLen) {
+				$note = dol_substr($note, 0, $maxNoteLen - 3).'...';
+			}
+			$pdf->SetFont('helvetica', 'I', $descFont);
+			$pdf->SetTextColor($valueClr[0], $valueClr[1], $valueClr[2]);
+			$pdf->SetXY($L + 2, $curY);
+			$pdf->MultiCell($usable - 4, 3, $note, 0, 'C');
+			$curY = $pdf->GetY();
+		}
+
 		$curY += 1;
 
 		// ================================================================

@@ -129,6 +129,7 @@ if ($action == 'update' && $permwrite) {
 	$object->product_label       = GETPOST('product_label', 'alpha');
 	$object->product_description = GETPOST('product_description', 'restricthtml');
 	$object->date_manufactured   = dol_mktime(0, 0, 0, GETPOSTINT('date_manufacturedmonth'), GETPOSTINT('date_manufacturedday'), GETPOSTINT('date_manufacturedyear'));
+	$object->note_public         = GETPOST('note_public', 'restricthtml');
 
 	$ret = $extrafields->setOptionalsFromPost(null, $object);
 
@@ -238,6 +239,11 @@ if ($action == 'create') {
 	print '<textarea name="product_description" id="product_description" class="quatrevingtpercent" rows="3" readonly></textarea>';
 	print '</td></tr>';
 
+	// Public note — optional, printed on label if provided
+	print '<tr><td>'.$langs->trans('NotePublic').'</td><td>';
+	print '<textarea name="note_public" id="note_public" class="quatrevingtpercent" rows="2" placeholder="'.$langs->trans('BoxLabelNotePublicHelp').'"></textarea>';
+	print '</td></tr>';
+
 	// Manufacturing Date — auto-filled from serial, but user can override
 	print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>';
 	print $form->selectDate('', 'date_manufactured', 0, 0, 1, 'create', 1, 1);
@@ -336,6 +342,11 @@ if ($action == 'create') {
 		print '<textarea name="product_description" id="product_description" class="quatrevingtpercent" rows="3" readonly>'.dol_escape_htmltag($object->product_description, 0, 1).'</textarea>';
 		print '</td></tr>';
 
+		// Public note — printed on label if provided
+		print '<tr><td>'.$langs->trans('NotePublic').'</td><td>';
+		print '<textarea name="note_public" id="note_public" class="quatrevingtpercent" rows="2">'.dol_escape_htmltag($object->note_public, 0, 1).'</textarea>';
+		print '</td></tr>';
+
 		// Manufacturing Date
 		print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>';
 		print $form->selectDate($object->date_manufactured, 'date_manufactured', 0, 0, 1, 'edit', 1, 1);
@@ -401,6 +412,11 @@ if ($action == 'create') {
 
 		// Product Description
 		print '<tr><td>'.$langs->trans('Description').'</td><td>'.dol_string_onlythesehtmltags(dol_htmlentitiesbr($object->product_description)).'</td></tr>';
+
+		// Public Note
+		if (!empty($object->note_public)) {
+			print '<tr><td>'.$langs->trans('NotePublic').'</td><td>'.dol_string_onlythesehtmltags(dol_htmlentitiesbr($object->note_public)).'</td></tr>';
+		}
 
 		// Manufacturing Date
 		print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>'.dol_print_date($object->date_manufactured, 'day').'</td></tr>';

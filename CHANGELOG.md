@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0] - 2026-04-04
+
+### Added
+- Print note_public on label PDF when present (italic, below product description)
+- Note field on create and edit forms with placeholder help text
+- Display note_public on label card view
+
 ## [1.7.1] - 2026-04-02
 
 ### Reverted
