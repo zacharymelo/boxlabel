@@ -23,12 +23,11 @@ $id     = GETPOSTINT('id');
 $ref    = GETPOST('ref', 'alpha');
 $action = GETPOST('action', 'aZ09');
 
+// Access control
+restrictedArea($user, 'boxlabel', 0, '', 'boxlabel');
+
 $permread  = $user->hasRight('boxlabel', 'boxlabel', 'read');
 $permwrite = $user->hasRight('boxlabel', 'boxlabel', 'write');
-
-if (!$permread) {
-	accessforbidden();
-}
 
 // Fetch product
 $product = new Product($db);

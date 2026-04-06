@@ -37,6 +37,35 @@ class BoxLabel extends CommonObject
 	const STATUS_GENERATED = 1;
 	const STATUS_ARCHIVED = 2;
 
+	/**
+	 * @var array Field definitions for CommonObject ORM methods (fetchCommon, deleteCommon, etc.)
+	 */
+	public $fields = array(
+		'rowid'               => array('type' => 'integer', 'label' => 'TechnicalID', 'enabled' => 1, 'visible' => -1, 'notnull' => 1, 'position' => 1, 'index' => 1),
+		'ref'                 => array('type' => 'varchar(30)', 'label' => 'Ref', 'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'showoncombobox' => 1, 'position' => 10, 'index' => 1),
+		'entity'              => array('type' => 'integer', 'label' => 'Entity', 'enabled' => 1, 'visible' => 0, 'notnull' => 1, 'default' => '1', 'position' => 20, 'index' => 1),
+		'fk_product'          => array('type' => 'integer:Product:product/class/product.class.php:0', 'label' => 'Product', 'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'position' => 30),
+		'fk_mo'               => array('type' => 'integer:Mo:mrp/class/mo.class.php', 'label' => 'ManufacturingOrder', 'enabled' => 1, 'visible' => 1, 'position' => 40),
+		'fk_product_lot'      => array('type' => 'integer:Productlot:product/stock/class/productlot.class.php', 'label' => 'Lot', 'enabled' => 1, 'visible' => -1, 'position' => 50),
+		'batch'               => array('type' => 'varchar(128)', 'label' => 'Batch', 'enabled' => 1, 'visible' => 1, 'position' => 60),
+		'serial_number'       => array('type' => 'varchar(128)', 'label' => 'SerialNumber', 'enabled' => 1, 'visible' => 1, 'position' => 70),
+		'product_label'       => array('type' => 'varchar(255)', 'label' => 'ProductLabel', 'enabled' => 1, 'visible' => 1, 'position' => 80),
+		'product_description' => array('type' => 'text', 'label' => 'Description', 'enabled' => 1, 'visible' => -1, 'position' => 90),
+		'date_manufactured'   => array('type' => 'date', 'label' => 'ManufacturingDate', 'enabled' => 1, 'visible' => 1, 'position' => 100),
+		'date_archived'       => array('type' => 'datetime', 'label' => 'DateArchived', 'enabled' => 1, 'visible' => -1, 'position' => 105),
+		'qty_labels'          => array('type' => 'integer', 'label' => 'Quantity', 'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'default' => '1', 'position' => 110),
+		'status'              => array('type' => 'smallint', 'label' => 'Status', 'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'default' => '0', 'position' => 500, 'index' => 1, 'arrayofkeyval' => array(0 => 'Draft', 1 => 'Generated', 2 => 'Archived')),
+		'note_private'        => array('type' => 'html', 'label' => 'NotePrivate', 'enabled' => 1, 'visible' => 0, 'position' => 600),
+		'note_public'         => array('type' => 'html', 'label' => 'NotePublic', 'enabled' => 1, 'visible' => 0, 'position' => 610),
+		'date_creation'       => array('type' => 'datetime', 'label' => 'DateCreation', 'enabled' => 1, 'visible' => -2, 'notnull' => 1, 'position' => 700),
+		'tms'                 => array('type' => 'timestamp', 'label' => 'DateModification', 'enabled' => 1, 'visible' => -2, 'position' => 710),
+		'fk_user_creat'       => array('type' => 'integer:User:user/class/user.class.php', 'label' => 'UserCreation', 'enabled' => 1, 'visible' => -2, 'notnull' => 1, 'position' => 720),
+		'fk_user_modif'       => array('type' => 'integer:User:user/class/user.class.php', 'label' => 'UserModification', 'enabled' => 1, 'visible' => -2, 'position' => 730),
+		'import_key'          => array('type' => 'varchar(14)', 'label' => 'ImportId', 'enabled' => 1, 'visible' => -2, 'position' => 900),
+		'model_pdf'           => array('type' => 'varchar(255)', 'label' => 'PDFModel', 'enabled' => 1, 'visible' => 0, 'position' => 910),
+		'last_main_doc'       => array('type' => 'varchar(255)', 'label' => 'LastMainDoc', 'enabled' => 1, 'visible' => 0, 'position' => 920),
+	);
+
 	// Properties
 	/** @var string */
 	public $ref;
@@ -158,7 +187,7 @@ class BoxLabel extends CommonObject
 		}
 
 		if (!$error && !$notrigger) {
-			$result = $this->call_trigger('BOXLABEL_BOXLABEL_CREATE', $user);
+			$result = $this->call_trigger('BOXLABEL_CREATE', $user);
 			if ($result < 0) {
 				$error++;
 			}
@@ -181,60 +210,7 @@ class BoxLabel extends CommonObject
 	 */
 	public function fetch($id, $ref = '')
 	{
-		$sql = "SELECT t.rowid, t.ref, t.entity, t.fk_product, t.fk_mo, t.fk_product_lot";
-		$sql .= ", t.batch, t.serial_number, t.product_label, t.product_description";
-		$sql .= ", t.date_manufactured, t.date_archived, t.qty_labels, t.status";
-		$sql .= ", t.note_private, t.note_public";
-		$sql .= ", t.date_creation, t.tms, t.fk_user_creat, t.fk_user_modif";
-		$sql .= ", t.import_key, t.model_pdf, t.last_main_doc";
-		$sql .= " FROM ".MAIN_DB_PREFIX."box_label as t";
-		$sql .= " WHERE t.entity IN (".getEntity('boxlabel').")";
-		if ($id > 0) {
-			$sql .= " AND t.rowid = ".((int) $id);
-		} elseif (!empty($ref)) {
-			$sql .= " AND t.ref = '".$this->db->escape($ref)."'";
-		} else {
-			return -1;
-		}
-
-		$resql = $this->db->query($sql);
-		if ($resql) {
-			if ($this->db->num_rows($resql)) {
-				$obj = $this->db->fetch_object($resql);
-
-				$this->id                  = $obj->rowid;
-				$this->ref                 = $obj->ref;
-				$this->entity              = $obj->entity;
-				$this->fk_product          = $obj->fk_product;
-				$this->fk_mo               = $obj->fk_mo;
-				$this->fk_product_lot      = $obj->fk_product_lot;
-				$this->batch               = $obj->batch;
-				$this->serial_number       = $obj->serial_number;
-				$this->product_label       = $obj->product_label;
-				$this->product_description = $obj->product_description;
-				$this->date_manufactured   = $this->db->jdate($obj->date_manufactured);
-				$this->date_archived       = $this->db->jdate($obj->date_archived);
-				$this->qty_labels          = $obj->qty_labels;
-				$this->status              = $obj->status;
-				$this->note_private        = $obj->note_private;
-				$this->note_public         = $obj->note_public;
-				$this->date_creation       = $this->db->jdate($obj->date_creation);
-				$this->tms                 = $obj->tms;
-				$this->fk_user_creat       = $obj->fk_user_creat;
-				$this->fk_user_modif       = $obj->fk_user_modif;
-				$this->import_key          = $obj->import_key;
-				$this->model_pdf           = $obj->model_pdf;
-				$this->last_main_doc       = $obj->last_main_doc;
-
-				$this->db->free($resql);
-				return 1;
-			}
-			$this->db->free($resql);
-			return 0;
-		} else {
-			$this->error = $this->db->lasterror();
-			return -1;
-		}
+		return $this->fetchCommon($id, $ref);
 	}
 
 	/**
@@ -278,7 +254,7 @@ class BoxLabel extends CommonObject
 		}
 
 		if (!$error && !$notrigger) {
-			$result = $this->call_trigger('BOXLABEL_BOXLABEL_MODIFY', $user);
+			$result = $this->call_trigger('BOXLABEL_MODIFY', $user);
 			if ($result < 0) {
 				$error++;
 			}
@@ -347,34 +323,7 @@ class BoxLabel extends CommonObject
 	 */
 	public function delete($user, $notrigger = 0)
 	{
-		$error = 0;
-
-		$this->db->begin();
-
-		if (!$error && !$notrigger) {
-			$result = $this->call_trigger('BOXLABEL_BOXLABEL_DELETE', $user);
-			if ($result < 0) {
-				$error++;
-			}
-		}
-
-		if (!$error) {
-			$sql = "DELETE FROM ".MAIN_DB_PREFIX."box_label";
-			$sql .= " WHERE rowid = ".((int) $this->id);
-
-			$resql = $this->db->query($sql);
-			if (!$resql) {
-				$error++;
-				$this->errors[] = "Error ".$this->db->lasterror();
-			}
-		}
-
-		if ($error) {
-			$this->db->rollback();
-			return -1;
-		}
-		$this->db->commit();
-		return 1;
+		return $this->deleteCommon($user, $notrigger);
 	}
 
 	/**
@@ -409,7 +358,7 @@ class BoxLabel extends CommonObject
 		}
 
 		if (!$error && !$notrigger) {
-			$result = $this->call_trigger('BOXLABEL_BOXLABEL_VALIDATE', $user);
+			$result = $this->call_trigger('BOXLABEL_VALIDATE', $user);
 			if ($result < 0) {
 				$error++;
 			}

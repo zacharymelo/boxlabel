@@ -40,11 +40,8 @@ $search_serial    = GETPOST('search_serial', 'alpha');
 $search_product   = GETPOST('search_product', 'alpha');
 $search_status    = GETPOST('search_status', 'intcomma');
 
-// Permissions
-$permread = $user->hasRight('boxlabel', 'boxlabel', 'read');
-if (!$permread) {
-	accessforbidden();
-}
+// Access control
+restrictedArea($user, 'boxlabel', 0, '', 'boxlabel');
 
 // Purge search criteria
 if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x', 'alpha') || GETPOST('button_removefilter', 'alpha')) {

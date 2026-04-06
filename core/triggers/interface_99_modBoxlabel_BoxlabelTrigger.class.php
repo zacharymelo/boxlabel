@@ -69,19 +69,19 @@ class InterfaceBoxlabelTrigger extends DolibarrTriggers
 
 		// Handle own object triggers
 		switch ($action) {
-			case 'BOXLABEL_BOXLABEL_CREATE':
+			case 'BOXLABEL_CREATE':
 				dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
 				break;
 
-			case 'BOXLABEL_BOXLABEL_MODIFY':
+			case 'BOXLABEL_MODIFY':
 				dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
 				break;
 
-			case 'BOXLABEL_BOXLABEL_DELETE':
+			case 'BOXLABEL_DELETE':
 				dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
 				break;
 
-			case 'BOXLABEL_BOXLABEL_VALIDATE':
+			case 'BOXLABEL_VALIDATE':
 				dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
 				break;
 		}

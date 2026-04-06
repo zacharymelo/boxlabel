@@ -33,15 +33,6 @@ $object = new BoxLabel($db);
 $extrafields = new ExtraFields($db);
 $extrafields->fetch_name_optionals_label($object->table_element);
 
-// Permissions
-$permread   = $user->hasRight('boxlabel', 'boxlabel', 'read');
-$permwrite  = $user->hasRight('boxlabel', 'boxlabel', 'write');
-$permdelete = $user->hasRight('boxlabel', 'boxlabel', 'delete');
-
-if (!$permread) {
-	accessforbidden();
-}
-
 // Fetch object
 if ($id > 0 || !empty($ref)) {
 	$result = $object->fetch($id, $ref);
@@ -50,6 +41,13 @@ if ($id > 0 || !empty($ref)) {
 		exit;
 	}
 }
+
+// Access control
+restrictedArea($user, 'boxlabel', $object->id, 'box_label', 'boxlabel', '', 'rowid');
+
+$permread   = $user->hasRight('boxlabel', 'boxlabel', 'read');
+$permwrite  = $user->hasRight('boxlabel', 'boxlabel', 'write');
+$permdelete = $user->hasRight('boxlabel', 'boxlabel', 'delete');
 
 
 /*

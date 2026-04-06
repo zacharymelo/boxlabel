@@ -27,12 +27,11 @@ $action = GETPOST('action', 'aZ09');
 // Support both ?fk_mo=X (from tab) and ?id=X
 $mo_id = $fk_mo > 0 ? $fk_mo : $id;
 
+// Access control
+restrictedArea($user, 'boxlabel', 0, '', 'boxlabel');
+
 $permread  = $user->hasRight('boxlabel', 'boxlabel', 'read');
 $permwrite = $user->hasRight('boxlabel', 'boxlabel', 'write');
-
-if (!$permread) {
-	accessforbidden();
-}
 
 // Fetch the MO
 $mo = new Mo($db);
