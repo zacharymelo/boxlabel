@@ -20,6 +20,9 @@ class ActionsBoxlabel
 	public $error = '';
 
 	/** @var array */
+	public $errors = array();
+
+	/** @var array */
 	public $results = array();
 
 	/** @var string */
