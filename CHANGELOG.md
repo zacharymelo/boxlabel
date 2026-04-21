@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.2] - 2026-04-21
+
+### Fixed
+- Namespace/remove lang keys colliding with Dolibarr core:
+  - Removed duplicate `ManufacturingOrder` (value matched core)
+  - Renamed `ManufacturingDate` → `BLManufacturingDate` (core uses "Manufacturing date")
+  - Renamed `ProductLabel` → `BLProductLabel` (core uses "Product label" but we want "Product Name")
+
 ## [1.8.0] - 2026-04-04
 
 ### Added

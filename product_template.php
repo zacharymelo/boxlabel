@@ -265,7 +265,7 @@ print '</tr>';
 
 print '<tr class="oddeven">';
 print '<td class="center"><input type="checkbox" checked disabled></td>';
-print '<td><strong>'.$langs->trans('ManufacturingDate').'</strong></td>';
+print '<td><strong>'.$langs->trans('BLManufacturingDate').'</strong></td>';
 print '<td class="opacitymedium">'.$langs->trans('LabelTemplateAlwaysShown').'</td>';
 print '</tr>';
 

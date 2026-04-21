@@ -228,7 +228,7 @@ if ($action == 'create') {
 	print '</td></tr>';
 
 	// Product Label — auto-filled, read-only
-	print '<tr><td>'.$langs->trans('ProductLabel').'</td><td>';
+	print '<tr><td>'.$langs->trans('BLProductLabel').'</td><td>';
 	print '<input type="text" name="product_label" id="product_label" class="maxwidth500" value="" readonly>';
 	print '</td></tr>';
 
@@ -243,7 +243,7 @@ if ($action == 'create') {
 	print '</td></tr>';
 
 	// Manufacturing Date — auto-filled from serial, but user can override
-	print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>';
+	print '<tr><td>'.$langs->trans('BLManufacturingDate').'</td><td>';
 	print $form->selectDate('', 'date_manufactured', 0, 0, 1, 'create', 1, 1);
 	print '</td></tr>';
 
@@ -331,7 +331,7 @@ if ($action == 'create') {
 		print '</td></tr>';
 
 		// Product Label
-		print '<tr><td>'.$langs->trans('ProductLabel').'</td><td>';
+		print '<tr><td>'.$langs->trans('BLProductLabel').'</td><td>';
 		print '<input type="text" name="product_label" id="product_label" class="maxwidth500" value="'.dol_escape_htmltag($object->product_label).'" readonly>';
 		print '</td></tr>';
 
@@ -346,7 +346,7 @@ if ($action == 'create') {
 		print '</td></tr>';
 
 		// Manufacturing Date
-		print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>';
+		print '<tr><td>'.$langs->trans('BLManufacturingDate').'</td><td>';
 		print $form->selectDate($object->date_manufactured, 'date_manufactured', 0, 0, 1, 'edit', 1, 1);
 		print '</td></tr>';
 
@@ -406,7 +406,7 @@ if ($action == 'create') {
 		print '</td></tr>';
 
 		// Product Label
-		print '<tr><td>'.$langs->trans('ProductLabel').'</td><td>'.dol_escape_htmltag($object->product_label).'</td></tr>';
+		print '<tr><td>'.$langs->trans('BLProductLabel').'</td><td>'.dol_escape_htmltag($object->product_label).'</td></tr>';
 
 		// Product Description
 		print '<tr><td>'.$langs->trans('Description').'</td><td>'.dol_string_onlythesehtmltags(dol_htmlentitiesbr($object->product_description)).'</td></tr>';
@@ -417,7 +417,7 @@ if ($action == 'create') {
 		}
 
 		// Manufacturing Date
-		print '<tr><td>'.$langs->trans('ManufacturingDate').'</td><td>'.dol_print_date($object->date_manufactured, 'day').'</td></tr>';
+		print '<tr><td>'.$langs->trans('BLManufacturingDate').'</td><td>'.dol_print_date($object->date_manufactured, 'day').'</td></tr>';
 
 		// Number of Copies
 

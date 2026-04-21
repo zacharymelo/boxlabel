@@ -134,10 +134,10 @@ print '<table class="tagtable liste">';
 print '<tr class="liste_titre">';
 print_liste_field_titre('Ref', $_SERVER['PHP_SELF'], 't.ref', '', $param, '', $sortfield, $sortorder);
 print_liste_field_titre('Product', $_SERVER['PHP_SELF'], 'p.ref', '', $param, '', $sortfield, $sortorder);
-print_liste_field_titre('ProductLabel', $_SERVER['PHP_SELF'], 't.product_label', '', $param, '', $sortfield, $sortorder);
+print_liste_field_titre('BLProductLabel', $_SERVER['PHP_SELF'], 't.product_label', '', $param, '', $sortfield, $sortorder);
 print_liste_field_titre('BoxLabelBatch', $_SERVER['PHP_SELF'], 't.batch', '', $param, '', $sortfield, $sortorder);
 print_liste_field_titre('BoxLabelSerialNumber', $_SERVER['PHP_SELF'], 't.serial_number', '', $param, '', $sortfield, $sortorder);
-print_liste_field_titre('ManufacturingDate', $_SERVER['PHP_SELF'], 't.date_manufactured', '', $param, '', $sortfield, $sortorder, 'center ');
+print_liste_field_titre('BLManufacturingDate', $_SERVER['PHP_SELF'], 't.date_manufactured', '', $param, '', $sortfield, $sortorder, 'center ');
 print_liste_field_titre('Status', $_SERVER['PHP_SELF'], 't.status', '', $param, '', $sortfield, $sortorder, 'center ');
 print '</tr>';
 

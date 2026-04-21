@@ -15,10 +15,9 @@ NewBoxLabel = New Box Label
 # Fields
 BoxLabelSerialNumber = Serial Number
 BoxLabelBatch = Batch
-ManufacturingDate = Manufacturing Date
+BLManufacturingDate = Manufacturing Date
 LabelQuantity = Number of Copies
-ProductLabel = Product Name
-ManufacturingOrder = Manufacturing Order
+BLProductLabel = Product Name
 BoxLabelLot = Lot/Serial
 
 # Status

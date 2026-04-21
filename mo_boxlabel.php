@@ -284,10 +284,10 @@ if ($resql) {
 	print '<table class="noborder centpercent">';
 	print '<tr class="liste_titre">';
 	print '<td>'.$langs->trans('Ref').'</td>';
-	print '<td>'.$langs->trans('ProductLabel').'</td>';
+	print '<td>'.$langs->trans('BLProductLabel').'</td>';
 	print '<td>'.$langs->trans('BoxLabelBatch').'</td>';
 	print '<td>'.$langs->trans('BoxLabelSerialNumber').'</td>';
-	print '<td class="center">'.$langs->trans('ManufacturingDate').'</td>';
+	print '<td class="center">'.$langs->trans('BLManufacturingDate').'</td>';
 	print '<td class="center">'.$langs->trans('Status').'</td>';
 	print '<td class="center">'.$langs->trans('Actions').'</td>';
 	print '</tr>';
